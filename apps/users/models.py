@@ -13,6 +13,13 @@ class User(AbstractUser):
         choices=Role.choices,
         default=Role.AGENCY_MANAGER,
     )
+    agency = models.ForeignKey(
+        "agencies.Agency",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     def __str__(self):
         return self.username

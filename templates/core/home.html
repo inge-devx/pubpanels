@@ -6,6 +6,13 @@
 </head>
 <body>
     <h1>PubPanels</h1>
-    <p>La plateforme démarre correctement.</p>
+
+    {% if user.is_authenticated %}
+        <p>Connecté en tant que {{ user.username }}</p>
+        <p><a href="{% url 'dashboard' %}">Accéder au dashboard</a></p>
+        <p><a href="{% url 'logout' %}">Se déconnecter</a></p>
+    {% else %}
+        <p><a href="{% url 'login' %}">Se connecter</a></p>
+    {% endif %}
 </body>
 </html>

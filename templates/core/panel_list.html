@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Panneaux - PubPanels</title>
+</head>
+<body>
+    <h1>Liste des panneaux</h1>
+
+    <p><a href="{% url 'dashboard' %}">Retour au dashboard</a></p>
+
+    <table border="1" cellpadding="6">
+        <thead>
+            <tr>
+                <th>Référence</th>
+                <th>Agence</th>
+                <th>Format</th>
+                <th>Ville</th>
+                <th>Quartier</th>
+                <th>Statut</th>
+                <th>Publié</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for panel in panels %}
+                <tr>
+                    <td>{{ panel.reference }}</td>
+                    <td>{{ panel.agency.name }}</td>
+                    <td>{{ panel.format }}</td>
+                    <td>{{ panel.city }}</td>
+                    <td>{{ panel.district }}</td>
+                    <td>{{ panel.get_status_display }}</td>
+                    <td>{{ panel.is_published|yesno:"Oui,Non" }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">Aucun panneau trouvé.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

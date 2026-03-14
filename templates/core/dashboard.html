@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - PubPanels</title>
+</head>
+<body>
+    <h1>Dashboard</h1>
+
+    <p><a href="{% url 'home' %}">Accueil</a></p>
+    <p><a href="{% url 'panel_list' %}">Voir les panneaux</a></p>
+    <p><a href="{% url 'reservation_list' %}">Voir les réservations</a></p>
+
+    <ul>
+        <li>Nombre de panneaux : {{ panel_count }}</li>
+        <li>Nombre de réservations : {{ reservation_count }}</li>
+        <li>Réservations en attente : {{ pending_count }}</li>
+        <li>Réservations actives : {{ active_count }}</li>
+    </ul>
+</body>
+</html>

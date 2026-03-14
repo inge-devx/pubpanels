@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Réservations - PubPanels</title>
+</head>
+<body>
+    <h1>Liste des réservations</h1>
+
+    <p><a href="{% url 'dashboard' %}">Retour au dashboard</a></p>
+
+    <table border="1" cellpadding="6">
+        <thead>
+            <tr>
+                <th>Agence</th>
+                <th>Panneau</th>
+                <th>Face</th>
+                <th>Client</th>
+                <th>Source</th>
+                <th>Statut</th>
+                <th>Début</th>
+                <th>Fin</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reservation in reservations %}
+                <tr>
+                    <td>{{ reservation.agency.name }}</td>
+                    <td>{{ reservation.panel_face.panel.reference }}</td>
+                    <td>{{ reservation.panel_face.code }}</td>
+                    <td>{{ reservation.client }}</td>
+                    <td>{{ reservation.get_source_display }}</td>
+                    <td>{{ reservation.get_status_display }}</td>
+                    <td>{{ reservation.start_date }}</td>
+                    <td>{{ reservation.end_date }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8">Aucune réservation trouvée.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

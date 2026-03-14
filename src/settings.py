@@ -26,6 +26,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.core.apps.CoreConfig",
     "apps.users.apps.UsersConfig",
+    "apps.agencies.apps.AgenciesConfig",
+    "apps.panels.apps.PanelsConfig",
+    "apps.reservations.apps.ReservationsConfig",
 ]
 
 MIDDLEWARE = [
@@ -100,3 +103,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "users.User"
+
+LOGIN_REDIRECT_URL = "dashboard"
+LOGOUT_REDIRECT_URL = "home"
