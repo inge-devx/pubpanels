@@ -1,6 +1,8 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
+from apps.panels.forms import PanelForm
 from apps.panels.models import Panel
 from apps.reservations.models import Reservation
 
@@ -39,6 +41,24 @@ def panel_list(request):
         panels = Panel.objects.select_related("agency").filter(agency=user.agency)
 
     return render(request, "core/panel_list.html", {"panels": panels})
+
+
+@login_required
+def panel_create(request):
+    if request.method == "POST":
+        form_data = request.POST.copy()
+        if request.user.role != request.user.Role.SUPER_ADMIN:
+            form_data["agency"] = request.user.agency_id
+
+        form = PanelForm(form_data, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Panneau créé avec succès.")
+            return redirect("panel_list")
+    else:
+        form = PanelForm(user=request.user)
+
+    return render(request, "core/panel_form.html", {"form": form})
 
 
 @login_required
