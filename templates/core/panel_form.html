@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Créer un panneau - PubPanels</title>
+</head>
+<body>
+    <h1>Créer un panneau</h1>
+
+    <p><a href="{% url 'panel_list' %}">Retour à la liste des panneaux</a></p>
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Créer</button>
+    </form>
+</body>
+</html>
