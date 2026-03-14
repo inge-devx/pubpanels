@@ -45,6 +45,10 @@ def panel_list(request):
 
 @login_required
 def panel_create(request):
+    if request.user.role != request.user.Role.SUPER_ADMIN and not request.user.agency:
+        messages.error(request, "Aucune agence n'est associée à votre compte.")
+        return redirect("dashboard")
+
     if request.method == "POST":
         form_data = request.POST.copy()
         if request.user.role != request.user.Role.SUPER_ADMIN:

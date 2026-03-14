@@ -89,7 +89,7 @@ class PanelCreateViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         agency_queryset = response.context["form"].fields["agency"].queryset
-        self.assertQuerySetEqual(agency_queryset, [self.agency_a], transform=lambda a: a)
+        self.assertEqual(list(agency_queryset), [self.agency_a])
 
     def test_success_message_is_added_after_creation(self):
         self.client.login(username="manager", password="testpass123")
