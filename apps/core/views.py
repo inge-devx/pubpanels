@@ -4,6 +4,7 @@ from django.shortcuts import redirect, render
 
 from apps.panels.forms import PanelForm
 from apps.panels.models import Panel
+from apps.reservations.forms import ReservationForm
 from apps.reservations.models import Reservation
 
 
@@ -52,7 +53,7 @@ def panel_create(request):
     if request.method == "POST":
         form_data = request.POST.copy()
         if request.user.role != request.user.Role.SUPER_ADMIN:
-            form_data["agency"] = request.user.agency_id
+            form_data["agency"] = str(request.user.agency_id)
 
         form = PanelForm(form_data, user=request.user)
         if form.is_valid():
@@ -83,3 +84,32 @@ def reservation_list(request):
         "core/reservation_list.html",
         {"reservations": reservations},
     )
+
+
+@login_required
+def reservation_create(request):
+    if request.user.role != request.user.Role.SUPER_ADMIN and not request.user.agency:
+        messages.error(request, "Aucune agence n'est associée à votre compte.")
+        return redirect("dashboard")
+
+    if request.method == "POST":
+        form_data = request.POST.copy()
+        if request.user.role != request.user.Role.SUPER_ADMIN:
+            form_data["agency"] = str(request.user.agency_id)
+
+        form = ReservationForm(form_data, user=request.user)
+        if form.is_valid():
+            reservation = form.save(commit=False)
+
+            if request.user.role != request.user.Role.SUPER_ADMIN:
+                reservation.agency = request.user.agency
+
+            reservation.created_by = request.user
+            reservation.save()
+
+            messages.success(request, "Réservation créée avec succès.")
+            return redirect("reservation_list")
+    else:
+        form = ReservationForm(user=request.user)
+
+    return render(request, "core/reservation_form.html", {"form": form})

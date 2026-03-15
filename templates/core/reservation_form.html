@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Créer une réservation - PubPanels</title>
+</head>
+<body>
+    <h1>Créer une réservation</h1>
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p><a href="{% url 'reservation_list' %}">Retour à la liste des réservations</a></p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Créer</button>
+    </form>
+</body>
+</html>
