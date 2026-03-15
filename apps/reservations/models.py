@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 
+
 class Client(models.Model):
     company_name = models.CharField(max_length=150, blank=True)
     contact_name = models.CharField(max_length=150)
@@ -24,6 +25,7 @@ class Client(models.Model):
         if self.company_name:
             return f"{self.company_name} - {self.contact_name}"
         return self.contact_name
+
 
 class Reservation(models.Model):
     class Source(models.TextChoices):
@@ -110,12 +112,24 @@ class Reservation(models.Model):
                     {"agency": "The selected panel face does not belong to the selected agency."}
                 )
 
-        if self.start_date and self.end_date and self.start_date > self.end_date:
-            raise ValidationError(
-                {"end_date": "End date must be greater than or equal to start date."}
-            )
+        if self.start_date and self.end_date:
+            if self.start_date > self.end_date:
+                raise ValidationError(
+                    {"end_date": "End date must be greater than or equal to start date."}
+                )
 
-        if self.status in self.blocking_statuses:
+            duration_days = (self.end_date - self.start_date).days + 1
+            if duration_days < 30:
+                raise ValidationError(
+                    {"end_date": "Reservation duration must be at least 30 days."}
+                )
+
+        if (
+            self.status in self.blocking_statuses
+            and self.panel_face_id
+            and self.start_date
+            and self.end_date
+        ):
             overlapping = Reservation.objects.filter(
                 panel_face=self.panel_face,
                 status__in=self.blocking_statuses,

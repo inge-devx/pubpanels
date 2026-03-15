@@ -1,9 +1,12 @@
+from datetime import date, timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
 from apps.panels.forms import PanelForm
-from apps.panels.models import Panel
+from apps.panels.models import Panel, PanelFace
 from apps.reservations.forms import ReservationForm
 from apps.reservations.models import Reservation
 
@@ -113,3 +116,61 @@ def reservation_create(request):
         form = ReservationForm(user=request.user)
 
     return render(request, "core/reservation_form.html", {"form": form})
+
+
+@login_required
+def panel_faces_by_agency_api(request):
+    user = request.user
+    agency_id = request.GET.get("agency_id")
+
+    if user.role != user.Role.SUPER_ADMIN:
+        if not user.agency_id:
+            return JsonResponse({"faces": [], "computed_end_date": None})
+        agency_id = str(user.agency_id)
+
+    if not agency_id:
+        return JsonResponse({"faces": [], "computed_end_date": None})
+
+    faces = PanelFace.objects.select_related("panel", "panel__agency").filter(
+        panel__agency_id=agency_id,
+        operational_status=PanelFace.OperationalStatus.AVAILABLE,
+    )
+
+    start_date_raw = request.GET.get("start_date")
+    duration_months_raw = request.GET.get("duration_months")
+    computed_end_date = None
+
+    if start_date_raw and duration_months_raw:
+        try:
+            start_date = date.fromisoformat(start_date_raw)
+            duration_months = int(duration_months_raw)
+
+            if duration_months >= 1:
+                computed_end_date = start_date + timedelta(days=(30 * duration_months) - 1)
+
+                faces = faces.exclude(
+                    reservations__status__in=[
+                        Reservation.Status.APPROVED,
+                        Reservation.Status.ACTIVE,
+                    ],
+                    reservations__start_date__lte=computed_end_date,
+                    reservations__end_date__gte=start_date,
+                )
+        except ValueError:
+            computed_end_date = None
+
+    faces = faces.order_by("panel__reference", "code").distinct()
+
+    return JsonResponse(
+        {
+            "faces": [
+                {
+                    "id": face.id,
+                    "label": str(face),
+                    "monthly_price": str(face.monthly_price),
+                }
+                for face in faces
+            ],
+            "computed_end_date": computed_end_date.isoformat() if computed_end_date else None,
+        }
+    )

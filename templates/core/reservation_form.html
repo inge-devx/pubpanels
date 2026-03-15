@@ -15,12 +15,204 @@
         </ul>
     {% endif %}
 
+    {% if form.non_field_errors %}
+        <ul>
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
     <p><a href="{% url 'reservation_list' %}">Retour à la liste des réservations</a></p>
 
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        {{ form.end_date }}
+
+        <p>
+            {{ form.agency.label_tag }}<br>
+            {{ form.agency }}
+            {% if form.agency.errors %}
+                <br>{{ form.agency.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.start_date.label_tag }}<br>
+            {{ form.start_date }}
+            {% if form.start_date.errors %}
+                <br>{{ form.start_date.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.duration_months.label_tag }}<br>
+            {{ form.duration_months }}
+            <br><small>{{ form.duration_months.help_text }}</small>
+            {% if form.duration_months.errors %}
+                <br>{{ form.duration_months.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            <strong>Date de fin calculée automatiquement :</strong>
+            <span id="computed-end-date">—</span>
+        </p>
+
+        <p>
+            {{ form.panel_face.label_tag }}<br>
+            {{ form.panel_face }}
+            {% if form.panel_face.errors %}
+                <br>{{ form.panel_face.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.client.label_tag }}<br>
+            {{ form.client }}
+            {% if form.client.errors %}
+                <br>{{ form.client.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.source.label_tag }}<br>
+            {{ form.source }}
+            {% if form.source.errors %}
+                <br>{{ form.source.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.status.label_tag }}<br>
+            {{ form.status }}
+            {% if form.status.errors %}
+                <br>{{ form.status.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.monthly_price.label_tag }}<br>
+            {{ form.monthly_price }}
+            {% if form.monthly_price.errors %}
+                <br>{{ form.monthly_price.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.total_price.label_tag }}<br>
+            {{ form.total_price }}
+            {% if form.total_price.errors %}
+                <br>{{ form.total_price.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.need_design_help.label_tag }}
+            {{ form.need_design_help }}
+            {% if form.need_design_help.errors %}
+                <br>{{ form.need_design_help.errors }}
+            {% endif %}
+        </p>
+
+        <p>
+            {{ form.notes.label_tag }}<br>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+                <br>{{ form.notes.errors }}
+            {% endif %}
+        </p>
+
         <button type="submit">Créer</button>
     </form>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const agencyField = document.getElementById("id_agency");
+            const startDateField = document.getElementById("id_start_date");
+            const durationField = document.getElementById("id_duration_months");
+            const panelFaceField = document.getElementById("id_panel_face");
+            const monthlyPriceField = document.getElementById("id_monthly_price");
+            const endDateField = document.getElementById("id_end_date");
+            const endDatePreview = document.getElementById("computed-end-date");
+
+            let facePrices = {};
+
+            function clearFaces() {
+                panelFaceField.innerHTML = '<option value="">---------</option>';
+                facePrices = {};
+            }
+
+            function updateComputedEndDate(value) {
+                endDateField.value = value || "";
+                endDatePreview.textContent = value || "—";
+            }
+
+            function updateMonthlyPriceFromFace() {
+                const selectedFaceId = panelFaceField.value;
+                if (selectedFaceId && facePrices[selectedFaceId]) {
+                    monthlyPriceField.value = facePrices[selectedFaceId];
+                }
+            }
+
+            function loadFaces() {
+                const agencyId = agencyField.value;
+                const startDate = startDateField.value;
+                const durationMonths = durationField.value;
+                const selectedFaceId = panelFaceField.value;
+
+                if (!agencyId) {
+                    clearFaces();
+                    updateComputedEndDate("");
+                    return;
+                }
+
+                const params = new URLSearchParams();
+                params.append("agency_id", agencyId);
+
+                if (startDate) {
+                    params.append("start_date", startDate);
+                }
+
+                if (durationMonths) {
+                    params.append("duration_months", durationMonths);
+                }
+
+                fetch(`/api/panel-faces/?${params.toString()}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        clearFaces();
+
+                        data.faces.forEach(face => {
+                            const option = document.createElement("option");
+                            option.value = face.id;
+                            option.textContent = face.label;
+                            if (String(face.id) === String(selectedFaceId)) {
+                                option.selected = true;
+                            }
+                            panelFaceField.appendChild(option);
+                            facePrices[String(face.id)] = face.monthly_price;
+                        });
+
+                        updateComputedEndDate(data.computed_end_date);
+
+                        if (panelFaceField.value && facePrices[panelFaceField.value]) {
+                            monthlyPriceField.value = facePrices[panelFaceField.value];
+                        }
+                    })
+                    .catch(() => {
+                        clearFaces();
+                        updateComputedEndDate("");
+                    });
+            }
+
+            agencyField.addEventListener("change", loadFaces);
+            startDateField.addEventListener("change", loadFaces);
+            durationField.addEventListener("input", loadFaces);
+            panelFaceField.addEventListener("change", updateMonthlyPriceFromFace);
+
+            loadFaces();
+        });
+    </script>
 </body>
 </html>

@@ -185,7 +185,7 @@ class ReservationCreateViewTests(TestCase):
                 "source": Reservation.Source.PLATFORM,
                 "status": Reservation.Status.PENDING,
                 "start_date": "2026-04-01",
-                "end_date": "2026-04-30",
+                "duration_months": "1",
                 "monthly_price": "150000.00",
                 "total_price": "150000.00",
                 "need_design_help": "on",
@@ -198,6 +198,7 @@ class ReservationCreateViewTests(TestCase):
         self.assertEqual(reservation.agency, self.agency_b)
         self.assertEqual(reservation.panel_face, self.face_b1)
         self.assertEqual(reservation.created_by, self.super_admin)
+        self.assertEqual(reservation.end_date.isoformat(), "2026-04-30")
 
     def test_non_super_admin_is_forced_to_own_agency(self):
         self.client.login(username="manager", password="testpass123")
@@ -211,7 +212,7 @@ class ReservationCreateViewTests(TestCase):
                 "source": Reservation.Source.MANUAL,
                 "status": Reservation.Status.PENDING,
                 "start_date": "2026-05-01",
-                "end_date": "2026-05-31",
+                "duration_months": "1",
                 "monthly_price": "100000.00",
                 "total_price": "100000.00",
                 "notes": "Réservation manager",
@@ -244,7 +245,7 @@ class ReservationCreateViewTests(TestCase):
                 "source": Reservation.Source.PLATFORM,
                 "status": Reservation.Status.PENDING,
                 "start_date": "2026-06-01",
-                "end_date": "2026-06-30",
+                "duration_months": "1",
                 "monthly_price": "100000.00",
                 "total_price": "100000.00",
                 "notes": "Réservation message",
@@ -267,7 +268,7 @@ class ReservationCreateViewTests(TestCase):
                 "source": Reservation.Source.PLATFORM,
                 "status": Reservation.Status.PENDING,
                 "start_date": "2026-07-01",
-                "end_date": "2026-07-31",
+                "duration_months": "1",
                 "monthly_price": "100000.00",
                 "total_price": "100000.00",
                 "notes": "Réservation created_by",
@@ -276,3 +277,58 @@ class ReservationCreateViewTests(TestCase):
 
         reservation = Reservation.objects.get(notes="Réservation created_by")
         self.assertEqual(reservation.created_by, self.manager)
+
+    def test_monthly_price_and_total_price_are_auto_filled_when_blank(self):
+        self.client.login(username="manager", password="testpass123")
+
+        self.client.post(
+            reverse("reservation_create"),
+            {
+                "agency": self.agency_a.id,
+                "panel_face": self.face_a1.id,
+                "client": self.client_obj.id,
+                "source": Reservation.Source.PLATFORM,
+                "status": Reservation.Status.PENDING,
+                "start_date": "2026-08-01",
+                "duration_months": "2",
+                "monthly_price": "",
+                "total_price": "",
+                "notes": "Réservation auto prix",
+            },
+        )
+
+        reservation = Reservation.objects.get(notes="Réservation auto prix")
+        self.assertEqual(reservation.monthly_price, Decimal("100000.00"))
+        self.assertEqual(reservation.total_price, Decimal("200000.00"))
+        self.assertEqual(reservation.end_date.isoformat(), "2026-09-29")
+
+    def test_panel_faces_api_filters_by_agency_and_period(self):
+        Reservation.objects.create(
+            agency=self.agency_a,
+            panel_face=self.face_a1,
+            client=self.client_obj,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.APPROVED,
+            start_date=date(2026, 9, 1),
+            end_date=date(2026, 9, 30),
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=self.super_admin,
+            notes="Blocage API",
+        )
+
+        self.client.login(username="superadmin", password="testpass123")
+
+        response = self.client.get(
+            reverse("panel_faces_by_agency_api"),
+            {
+                "agency_id": self.agency_a.id,
+                "start_date": "2026-09-01",
+                "duration_months": "1",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["faces"], [])
+        self.assertEqual(payload["computed_end_date"], "2026-09-30")
