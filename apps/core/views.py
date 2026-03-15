@@ -2,8 +2,8 @@ from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.http import Http404, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.panels.forms import PanelForm
 from apps.panels.models import Panel, PanelFace
@@ -13,6 +13,23 @@ from apps.reservations.models import Reservation
 
 def home(request):
     return render(request, "core/home.html")
+
+
+def get_agency_scoped_panel_or_404(user, panel_id):
+    if user.role == user.Role.SUPER_ADMIN:
+        return get_object_or_404(
+            Panel.objects.select_related("agency").prefetch_related("faces"),
+            pk=panel_id,
+        )
+
+    if not user.agency:
+        raise Http404("No agency is associated with this user.")
+
+    return get_object_or_404(
+        Panel.objects.select_related("agency").prefetch_related("faces"),
+        pk=panel_id,
+        agency=user.agency,
+    )
 
 
 @login_required
@@ -48,6 +65,12 @@ def panel_list(request):
 
 
 @login_required
+def panel_detail(request, panel_id):
+    panel = get_agency_scoped_panel_or_404(request.user, panel_id)
+    return render(request, "core/panel_detail.html", {"panel": panel})
+
+
+@login_required
 def panel_create(request):
     if request.user.role != request.user.Role.SUPER_ADMIN and not request.user.agency:
         messages.error(request, "Aucune agence n'est associée à votre compte.")
@@ -60,13 +83,50 @@ def panel_create(request):
 
         form = PanelForm(form_data, user=request.user)
         if form.is_valid():
-            form.save()
+            panel = form.save()
             messages.success(request, "Panneau créé avec succès.")
-            return redirect("panel_list")
+            return redirect("panel_detail", panel_id=panel.id)
     else:
         form = PanelForm(user=request.user)
 
-    return render(request, "core/panel_form.html", {"form": form})
+    return render(
+        request,
+        "core/panel_form.html",
+        {
+            "form": form,
+            "page_title": "Créer un panneau",
+            "submit_label": "Créer",
+        },
+    )
+
+
+@login_required
+def panel_update(request, panel_id):
+    panel = get_agency_scoped_panel_or_404(request.user, panel_id)
+
+    if request.method == "POST":
+        form_data = request.POST.copy()
+        if request.user.role != request.user.Role.SUPER_ADMIN:
+            form_data["agency"] = str(request.user.agency_id)
+
+        form = PanelForm(form_data, instance=panel, user=request.user)
+        if form.is_valid():
+            panel = form.save()
+            messages.success(request, "Panneau mis à jour avec succès.")
+            return redirect("panel_detail", panel_id=panel.id)
+    else:
+        form = PanelForm(instance=panel, user=request.user)
+
+    return render(
+        request,
+        "core/panel_form.html",
+        {
+            "form": form,
+            "panel": panel,
+            "page_title": "Modifier un panneau",
+            "submit_label": "Mettre à jour",
+        },
+    )
 
 
 @login_required

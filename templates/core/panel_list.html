@@ -7,6 +7,14 @@
 <body>
     <h1>Liste des panneaux</h1>
 
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
     <p><a href="{% url 'dashboard' %}">Retour au dashboard</a></p>
     <p><a href="{% url 'panel_create' %}">Créer un panneau</a></p>
 
@@ -20,6 +28,7 @@
                 <th>Quartier</th>
                 <th>Statut</th>
                 <th>Publié</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -32,10 +41,15 @@
                     <td>{{ panel.district }}</td>
                     <td>{{ panel.get_status_display }}</td>
                     <td>{{ panel.is_published|yesno:"Oui,Non" }}</td>
+                    <td>
+                        <a href="{% url 'panel_detail' panel.id %}">Voir</a>
+                        |
+                        <a href="{% url 'panel_update' panel.id %}">Modifier</a>
+                    </td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="7">Aucun panneau trouvé.</td>
+                    <td colspan="8">Aucun panneau trouvé.</td>
                 </tr>
             {% endfor %}
         </tbody>

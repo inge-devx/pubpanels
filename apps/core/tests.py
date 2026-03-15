@@ -57,8 +57,8 @@ class PanelCreateViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("panel_list"))
         panel = Panel.objects.get(reference="PNL-SUP-001")
+        self.assertRedirects(response, reverse("panel_detail", args=[panel.id]))
         self.assertEqual(panel.agency, self.agency_b)
 
     def test_non_super_admin_is_forced_to_own_agency(self):
@@ -82,8 +82,8 @@ class PanelCreateViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("panel_list"))
         panel = Panel.objects.get(reference="PNL-MNG-001")
+        self.assertRedirects(response, reverse("panel_detail", args=[panel.id]))
         self.assertEqual(panel.agency, self.agency_a)
 
     def test_non_super_admin_form_shows_only_own_agency(self):
@@ -116,7 +116,7 @@ class PanelCreateViewTests(TestCase):
         self.assertIn("Panneau créé avec succès.", messages)
 
 
-class ReservationCreateViewTests(TestCase):
+class PanelDetailAndUpdateViewTests(TestCase):
     def setUp(self):
         self.agency_a = Agency.objects.create(
             name="Agence A",
@@ -131,6 +131,161 @@ class ReservationCreateViewTests(TestCase):
 
         self.super_admin = User.objects.create_user(
             username="superadmin",
+            password="testpass123",
+            role=User.Role.SUPER_ADMIN,
+            agency=self.agency_a,
+        )
+        self.manager_a = User.objects.create_user(
+            username="managera",
+            password="testpass123",
+            role=User.Role.AGENCY_MANAGER,
+            agency=self.agency_a,
+        )
+        self.manager_b = User.objects.create_user(
+            username="managerb",
+            password="testpass123",
+            role=User.Role.AGENCY_MANAGER,
+            agency=self.agency_b,
+        )
+
+        self.panel_a = Panel.objects.create(
+            agency=self.agency_a,
+            reference="PANEL-A",
+            title="Panneau A",
+            format="12x4",
+            city="Ouagadougou",
+            district="Centre",
+            status=Panel.Status.ACTIVE,
+            is_published=True,
+        )
+
+        self.face_a1 = PanelFace.objects.create(
+            panel=self.panel_a,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+
+    def test_super_admin_can_view_panel_detail(self):
+        self.client.login(username="superadmin", password="testpass123")
+
+        response = self.client.get(reverse("panel_detail", args=[self.panel_a.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PANEL-A")
+        self.assertContains(response, "Panneau A")
+
+    def test_agency_user_can_view_own_panel_detail(self):
+        self.client.login(username="managera", password="testpass123")
+
+        response = self.client.get(reverse("panel_detail", args=[self.panel_a.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PANEL-A")
+
+    def test_agency_user_cannot_view_other_agency_panel_detail(self):
+        self.client.login(username="managerb", password="testpass123")
+
+        response = self.client.get(reverse("panel_detail", args=[self.panel_a.id]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_super_admin_can_update_panel(self):
+        self.client.login(username="superadmin", password="testpass123")
+
+        response = self.client.post(
+            reverse("panel_update", args=[self.panel_a.id]),
+            {
+                "agency": self.agency_b.id,
+                "reference": "PANEL-A-UPDATED",
+                "title": "Panneau modifié",
+                "format": "4x3",
+                "city": "Bobo-Dioulasso",
+                "district": "Sud",
+                "address": "Nouvelle adresse",
+                "latitude": "11.500000",
+                "longitude": "-4.200000",
+                "description": "Description modifiée",
+                "status": Panel.Status.MAINTENANCE,
+                "is_published": "on",
+            },
+        )
+
+        self.panel_a.refresh_from_db()
+        self.assertRedirects(response, reverse("panel_detail", args=[self.panel_a.id]))
+        self.assertEqual(self.panel_a.agency, self.agency_b)
+        self.assertEqual(self.panel_a.reference, "PANEL-A-UPDATED")
+        self.assertEqual(self.panel_a.title, "Panneau modifié")
+
+    def test_agency_user_is_forced_to_keep_own_agency_on_update(self):
+        self.client.login(username="managera", password="testpass123")
+
+        response = self.client.post(
+            reverse("panel_update", args=[self.panel_a.id]),
+            {
+                "agency": self.agency_b.id,
+                "reference": "PANEL-A-UPDATED-2",
+                "title": "Panneau agence",
+                "format": "12x4",
+                "city": "Ouagadougou",
+                "district": "Centre",
+                "address": "Adresse agence",
+                "latitude": "12.350000",
+                "longitude": "-1.520000",
+                "description": "Description agence",
+                "status": Panel.Status.ACTIVE,
+                "is_published": "on",
+            },
+        )
+
+        self.panel_a.refresh_from_db()
+        self.assertRedirects(response, reverse("panel_detail", args=[self.panel_a.id]))
+        self.assertEqual(self.panel_a.agency, self.agency_a)
+        self.assertEqual(self.panel_a.reference, "PANEL-A-UPDATED-2")
+
+    def test_agency_user_cannot_update_other_agency_panel(self):
+        self.client.login(username="managerb", password="testpass123")
+
+        response = self.client.get(reverse("panel_update", args=[self.panel_a.id]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_success_message_is_added_after_update(self):
+        self.client.login(username="managera", password="testpass123")
+
+        response = self.client.post(
+            reverse("panel_update", args=[self.panel_a.id]),
+            {
+                "agency": self.agency_a.id,
+                "reference": "PANEL-A-MSG",
+                "title": "Message update",
+                "format": "12x4",
+                "city": "Ouagadougou",
+                "district": "Centre",
+                "status": Panel.Status.ACTIVE,
+                "is_published": "on",
+            },
+            follow=True,
+        )
+
+        messages = [m.message for m in get_messages(response.wsgi_request)]
+        self.assertIn("Panneau mis à jour avec succès.", messages)
+
+
+class ReservationCreateViewTests(TestCase):
+    def setUp(self):
+        self.agency_a = Agency.objects.create(
+            name="Agence A",
+            slug="agence-a",
+            email="a@test.com",
+        )
+        self.agency_b = Agency.objects.create(
+            name="Agence B",
+            slug="agence-b",
+            email="b@test.com",
+        )
+
+        self.super_admin = User.objects.create_user(
+            username="superadmin2",
             password="testpass123",
             role=User.Role.SUPER_ADMIN,
             agency=self.agency_a,
@@ -174,7 +329,7 @@ class ReservationCreateViewTests(TestCase):
         )
 
     def test_super_admin_can_create_reservation_for_any_agency(self):
-        self.client.login(username="superadmin", password="testpass123")
+        self.client.login(username="superadmin2", password="testpass123")
 
         response = self.client.post(
             reverse("reservation_create"),
@@ -317,7 +472,7 @@ class ReservationCreateViewTests(TestCase):
             notes="Blocage API",
         )
 
-        self.client.login(username="superadmin", password="testpass123")
+        self.client.login(username="superadmin2", password="testpass123")
 
         response = self.client.get(
             reverse("panel_faces_by_agency_api"),

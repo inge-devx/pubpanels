@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Détail panneau - PubPanels</title>
+</head>
+<body>
+    <h1>Détail du panneau</h1>
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p><a href="{% url 'panel_list' %}">Retour à la liste</a></p>
+    <p><a href="{% url 'panel_update' panel.id %}">Modifier ce panneau</a></p>
+
+    <ul>
+        <li><strong>Référence :</strong> {{ panel.reference }}</li>
+        <li><strong>Agence :</strong> {{ panel.agency.name }}</li>
+        <li><strong>Titre :</strong> {{ panel.title|default:"—" }}</li>
+        <li><strong>Format :</strong> {{ panel.format }}</li>
+        <li><strong>Ville :</strong> {{ panel.city }}</li>
+        <li><strong>Quartier :</strong> {{ panel.district|default:"—" }}</li>
+        <li><strong>Adresse :</strong> {{ panel.address|default:"—" }}</li>
+        <li><strong>Latitude :</strong> {{ panel.latitude|default:"—" }}</li>
+        <li><strong>Longitude :</strong> {{ panel.longitude|default:"—" }}</li>
+        <li><strong>Description :</strong> {{ panel.description|default:"—" }}</li>
+        <li><strong>Statut :</strong> {{ panel.get_status_display }}</li>
+        <li><strong>Publié :</strong> {{ panel.is_published|yesno:"Oui,Non" }}</li>
+        <li><strong>Créé le :</strong> {{ panel.created_at }}</li>
+        <li><strong>Mis à jour le :</strong> {{ panel.updated_at }}</li>
+    </ul>
+
+    <h2>Faces du panneau</h2>
+
+    <table border="1" cellpadding="6">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Orientation</th>
+                <th>Prix mensuel</th>
+                <th>Statut opérationnel</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for face in panel.faces.all %}
+                <tr>
+                    <td>{{ face.code }}</td>
+                    <td>{{ face.orientation|default:"—" }}</td>
+                    <td>{{ face.monthly_price }}</td>
+                    <td>{{ face.get_operational_status_display }}</td>
+                    <td>{{ face.notes|default:"—" }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5">Aucune face enregistrée pour ce panneau.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
