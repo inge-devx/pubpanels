@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.messages import get_messages
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
@@ -269,6 +270,80 @@ class PanelDetailAndUpdateViewTests(TestCase):
 
         messages = [m.message for m in get_messages(response.wsgi_request)]
         self.assertIn("Panneau mis à jour avec succès.", messages)
+
+
+class PanelFaceModelTests(TestCase):
+    def setUp(self):
+        self.agency = Agency.objects.create(
+            name="Agence Test",
+            slug="agence-test",
+            email="agence@test.com",
+        )
+        self.panel = Panel.objects.create(
+            agency=self.agency,
+            reference="PANEL-FACES",
+            format="12x4",
+            city="Ouagadougou",
+        )
+
+    def test_can_create_face_codes_up_to_d(self):
+        face_a = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+        face_b = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.B,
+            monthly_price=Decimal("100000.00"),
+        )
+        face_c = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.C,
+            monthly_price=Decimal("100000.00"),
+        )
+        face_d = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.D,
+            monthly_price=Decimal("100000.00"),
+        )
+
+        self.assertEqual(face_a.code, "A")
+        self.assertEqual(face_b.code, "B")
+        self.assertEqual(face_c.code, "C")
+        self.assertEqual(face_d.code, "D")
+        self.assertEqual(self.panel.faces.count(), 4)
+
+    def test_cannot_create_more_than_four_faces_for_one_panel(self):
+        PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+        PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.B,
+            monthly_price=Decimal("100000.00"),
+        )
+        PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.C,
+            monthly_price=Decimal("100000.00"),
+        )
+        PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.D,
+            monthly_price=Decimal("100000.00"),
+        )
+
+        extra_face = PanelFace(
+            panel=self.panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+
+        with self.assertRaises(ValidationError):
+            extra_face.full_clean()
 
 
 class ReservationCreateViewTests(TestCase):

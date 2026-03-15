@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -62,9 +63,13 @@ class Panel(models.Model):
 
 
 class PanelFace(models.Model):
+    MAX_FACES_PER_PANEL = 4
+
     class FaceCode(models.TextChoices):
         A = "A", "Face A"
         B = "B", "Face B"
+        C = "C", "Face C"
+        D = "D", "Face D"
 
     class OperationalStatus(models.TextChoices):
         AVAILABLE = "available", "Available"
@@ -96,7 +101,7 @@ class PanelFace(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["panel__reference", "code"]
+        ordering = ["panel", "code"]
         constraints = [
             models.UniqueConstraint(
                 fields=["panel", "code"],
@@ -107,6 +112,27 @@ class PanelFace(models.Model):
             models.Index(fields=["panel", "code"]),
             models.Index(fields=["operational_status"]),
         ]
+
+    def clean(self):
+        super().clean()
+
+        if not self.panel_id:
+            return
+
+        existing_faces = PanelFace.objects.filter(panel=self.panel)
+        if self.pk:
+            existing_faces = existing_faces.exclude(pk=self.pk)
+
+        if existing_faces.count() >= self.MAX_FACES_PER_PANEL:
+            raise ValidationError(
+                {
+                    "panel": f"A panel cannot have more than {self.MAX_FACES_PER_PANEL} faces."
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.panel.reference} - Face {self.code}"
