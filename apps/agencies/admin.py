@@ -7,12 +7,13 @@ from .models import Agency
 class AgencyAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "city",
+        "country",
+        "city_ref",
         "status",
         "commission_rate",
         "alert_days_before_expiry",
         "created_at",
     )
-    list_filter = ("status", "city")
-    search_fields = ("name", "slug", "email", "phone", "city")
+    list_filter = ("country", "status", "city_ref")
+    search_fields = ("name", "slug", "email", "phone", "address", "city")
     prepopulated_fields = {"slug": ("name",)}

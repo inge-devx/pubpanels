@@ -34,5 +34,46 @@
         {{ form.as_p }}
         <button type="submit">{{ submit_label }}</button>
     </form>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const countryField = document.getElementById("id_country");
+            const cityField = document.getElementById("id_city_ref");
+
+            function loadCities(selectedCityId = "") {
+                const country = countryField.value;
+
+                if (!country) {
+                    cityField.innerHTML = '<option value="">---------</option>';
+                    return;
+                }
+
+                fetch(`/api/cities/?country=${country}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        cityField.innerHTML = '<option value="">---------</option>';
+
+                        data.cities.forEach(city => {
+                            const option = document.createElement("option");
+                            option.value = city.id;
+                            option.textContent = city.name;
+
+                            if (String(city.id) === String(selectedCityId)) {
+                                option.selected = true;
+                            }
+
+                            cityField.appendChild(option);
+                        });
+                    });
+            }
+
+            const initialCityId = cityField.value;
+            loadCities(initialCityId);
+
+            countryField.addEventListener("change", function () {
+                loadCities("");
+            });
+        });
+    </script>
 </body>
 </html>

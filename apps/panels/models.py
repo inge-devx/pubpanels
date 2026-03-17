@@ -3,12 +3,20 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.core.constants import COUNTRY_CHOICES
+
 
 class Panel(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
         INACTIVE = "inactive", "Inactive"
         MAINTENANCE = "maintenance", "Maintenance"
+
+    class FormatCategory(models.TextChoices):
+        SMALL = "small", "Inférieur à 12 m²"
+        STANDARD = "standard", "De 12 à moins de 24 m²"
+        LARGE = "large", "24 m²"
+        XL = "xl", "Supérieur à 24 m²"
 
     agency = models.ForeignKey(
         "agencies.Agency",
@@ -17,8 +25,36 @@ class Panel(models.Model):
     )
     reference = models.CharField(max_length=100)
     title = models.CharField(max_length=150, blank=True)
-    format = models.CharField(max_length=100)
+    format_category = models.CharField(
+        max_length=20,
+        choices=FormatCategory.choices,
+        default=FormatCategory.STANDARD,
+    )
+    width_m = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    height_m = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    country = models.CharField(
+        max_length=2,
+        choices=COUNTRY_CHOICES,
+        default="BF",
+    )
     city = models.CharField(max_length=100)
+    city_ref = models.ForeignKey(
+        "locations.City",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="panels",
+    )
     district = models.CharField(max_length=100, blank=True)
     address = models.CharField(max_length=255, blank=True)
     latitude = models.DecimalField(
@@ -53,10 +89,72 @@ class Panel(models.Model):
         ]
         indexes = [
             models.Index(fields=["agency", "status"]),
-            models.Index(fields=["city"]),
+            models.Index(fields=["country"]),
+            models.Index(fields=["format_category"]),
             models.Index(fields=["district"]),
             models.Index(fields=["is_published"]),
         ]
+
+    @property
+    def area_sqm(self):
+        if self.width_m is not None and self.height_m is not None:
+            return self.width_m * self.height_m
+        return None
+
+    @property
+    def formatted_dimensions(self):
+        if self.width_m is not None and self.height_m is not None:
+            return f"{self.width_m} m x {self.height_m} m"
+        return "—"
+
+    def clean(self):
+        super().clean()
+
+        if self.city_ref and self.city_ref.country_code != self.country:
+            raise ValidationError(
+                {"city_ref": "The selected city does not belong to the selected country."}
+            )
+
+        if self.width_m is not None and self.width_m <= 0:
+            raise ValidationError({"width_m": "Width must be greater than 0."})
+
+        if self.height_m is not None and self.height_m <= 0:
+            raise ValidationError({"height_m": "Height must be greater than 0."})
+
+        if (self.width_m is None) != (self.height_m is None):
+            raise ValidationError(
+                "Width and height must either both be filled or both be empty."
+            )
+
+        area = self.area_sqm
+        if area is not None:
+            if self.format_category == self.FormatCategory.SMALL and area >= Decimal("12"):
+                raise ValidationError(
+                    {"format_category": "A panel categorized as 'Inférieur à 12 m²' must have an area below 12 m²."}
+                )
+
+            if self.format_category == self.FormatCategory.STANDARD and not (
+                Decimal("12") <= area < Decimal("24")
+            ):
+                raise ValidationError(
+                    {"format_category": "A panel categorized as 'De 12 à moins de 24 m²' must have an area between 12 m² and less than 24 m²."}
+                )
+
+            if self.format_category == self.FormatCategory.LARGE and area != Decimal("24"):
+                raise ValidationError(
+                    {"format_category": "A panel categorized as '24 m²' must have an area exactly equal to 24 m²."}
+                )
+
+            if self.format_category == self.FormatCategory.XL and area <= Decimal("24"):
+                raise ValidationError(
+                    {"format_category": "A panel categorized as 'Supérieur à 24 m²' must have an area greater than 24 m²."}
+                )
+
+    def save(self, *args, **kwargs):
+        if self.city_ref and not self.city:
+            self.city = self.city_ref.name
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.reference} - {self.agency.name}"

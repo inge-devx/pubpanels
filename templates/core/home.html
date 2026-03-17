@@ -7,6 +7,8 @@
 <body>
     <h1>PubPanels</h1>
 
+    <p><a href="{% url 'public_catalog' %}">Voir le catalogue public</a></p>
+
     {% if user.is_authenticated %}
         <p>Connecté en tant que {{ user.username }}</p>
         <p><a href="{% url 'dashboard' %}">Accéder au dashboard</a></p>

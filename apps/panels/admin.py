@@ -13,15 +13,17 @@ class PanelAdmin(admin.ModelAdmin):
     list_display = (
         "reference",
         "agency",
-        "format",
-        "city",
-        "district",
+        "format_category",
+        "width_m",
+        "height_m",
+        "country",
+        "city_ref",
         "status",
         "is_published",
         "created_at",
     )
-    list_filter = ("agency", "status", "is_published", "city")
-    search_fields = ("reference", "title", "city", "district", "address")
+    list_filter = ("agency", "format_category", "country", "city_ref", "status", "is_published")
+    search_fields = ("reference", "title", "district", "address", "city")
     inlines = [PanelFaceInline]
 
 

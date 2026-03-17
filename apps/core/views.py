@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.locations.models import City
 from apps.panels.forms import PanelForm
 from apps.panels.models import Panel, PanelFace
 from apps.reservations.forms import ReservationForm
@@ -18,7 +19,7 @@ def home(request):
 def get_agency_scoped_panel_or_404(user, panel_id):
     if user.role == user.Role.SUPER_ADMIN:
         return get_object_or_404(
-            Panel.objects.select_related("agency").prefetch_related("faces"),
+            Panel.objects.select_related("agency", "city_ref").prefetch_related("faces"),
             pk=panel_id,
         )
 
@@ -26,7 +27,7 @@ def get_agency_scoped_panel_or_404(user, panel_id):
         raise Http404("No agency is associated with this user.")
 
     return get_object_or_404(
-        Panel.objects.select_related("agency").prefetch_related("faces"),
+        Panel.objects.select_related("agency", "city_ref").prefetch_related("faces"),
         pk=panel_id,
         agency=user.agency,
     )
@@ -57,9 +58,9 @@ def panel_list(request):
     user = request.user
 
     if user.role == user.Role.SUPER_ADMIN:
-        panels = Panel.objects.select_related("agency").all()
+        panels = Panel.objects.select_related("agency", "city_ref").all()
     else:
-        panels = Panel.objects.select_related("agency").filter(agency=user.agency)
+        panels = Panel.objects.select_related("agency", "city_ref").filter(agency=user.agency)
 
     return render(request, "core/panel_list.html", {"panels": panels})
 
@@ -232,5 +233,30 @@ def panel_faces_by_agency_api(request):
                 for face in faces
             ],
             "computed_end_date": computed_end_date.isoformat() if computed_end_date else None,
+        }
+    )
+
+
+@login_required
+def cities_by_country_api(request):
+    country_code = request.GET.get("country")
+
+    if not country_code:
+        return JsonResponse({"cities": []})
+
+    cities = City.objects.filter(
+        country_code=country_code,
+        is_active=True,
+    ).order_by("name")
+
+    return JsonResponse(
+        {
+            "cities": [
+                {
+                    "id": city.id,
+                    "name": city.name,
+                }
+                for city in cities
+            ]
         }
     )

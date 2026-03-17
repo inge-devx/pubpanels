@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from apps.agencies.models import Agency
+from apps.locations.models import City
 from apps.panels.models import Panel, PanelFace
 from apps.reservations.models import Client, Reservation
 from apps.users.models import User
@@ -12,10 +13,18 @@ from apps.users.models import User
 
 class ReservationModelTests(TestCase):
     def setUp(self):
+        self.city = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+
         self.agency = Agency.objects.create(
             name="Agence Test",
             slug="agence-test",
             email="agence@test.com",
+            country="BF",
+            city_ref=self.city,
         )
 
         self.user = User.objects.create_user(
@@ -28,8 +37,12 @@ class ReservationModelTests(TestCase):
         self.panel = Panel.objects.create(
             agency=self.agency,
             reference="PANEL-001",
-            format="12x4",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
             city="Ouagadougou",
+            city_ref=self.city,
         )
 
         self.face_a = PanelFace.objects.create(
@@ -102,7 +115,7 @@ class ReservationModelTests(TestCase):
             created_by=self.user,
         )
 
-        reservation.full_clean()  # ne doit pas lever d'erreur
+        reservation.full_clean()
 
     def test_end_date_before_start_date_is_rejected(self):
         reservation = Reservation(
@@ -126,6 +139,8 @@ class ReservationModelTests(TestCase):
             name="Autre Agence",
             slug="autre-agence",
             email="autre@test.com",
+            country="BF",
+            city_ref=self.city,
         )
 
         reservation = Reservation(

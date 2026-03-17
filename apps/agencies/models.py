@@ -1,5 +1,9 @@
-from django.db import models
 from decimal import Decimal
+
+from django.core.exceptions import ValidationError
+from django.db import models
+
+from apps.core.constants import COUNTRY_CHOICES
 
 
 class Agency(models.Model):
@@ -12,7 +16,19 @@ class Agency(models.Model):
     slug = models.SlugField(unique=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
+    country = models.CharField(
+        max_length=2,
+        choices=COUNTRY_CHOICES,
+        default="BF",
+    )
     city = models.CharField(max_length=100, blank=True)
+    city_ref = models.ForeignKey(
+        "locations.City",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="agencies",
+    )
     address = models.CharField(max_length=255, blank=True)
     status = models.CharField(
         max_length=20,
@@ -31,6 +47,20 @@ class Agency(models.Model):
 
     class Meta:
         ordering = ["name"]
+
+    def clean(self):
+        super().clean()
+
+        if self.city_ref and self.city_ref.country_code != self.country:
+            raise ValidationError(
+                {"city_ref": "The selected city does not belong to the selected country."}
+            )
+
+    def save(self, *args, **kwargs):
+        if self.city_ref and not self.city:
+            self.city = self.city_ref.name
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

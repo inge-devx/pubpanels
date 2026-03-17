@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Catalogue public - PubPanels</title>
+</head>
+<body>
+    <h1>Catalogue des panneaux</h1>
+
+    <p><a href="{% url 'home' %}">Retour à l'accueil</a></p>
+
+    <form method="get" id="catalog-filter-form">
+        <p>
+            <label for="id_country">Pays</label><br>
+            <select name="country" id="id_country">
+                <option value="">Tous les pays</option>
+                {% for country in countries %}
+                    <option value="{{ country.code }}" {% if selected_country == country.code %}selected{% endif %}>
+                        {{ country.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+
+        <p>
+            <label for="id_city">Ville</label><br>
+            <select name="city" id="id_city">
+                <option value="">Toutes les villes</option>
+                {% for city in cities %}
+                    <option value="{{ city.id }}" {% if selected_city == city.id|stringformat:"s" %}selected{% endif %}>
+                        {{ city.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+
+        <p>
+            <label for="id_agency">Agence</label><br>
+            <select name="agency" id="id_agency">
+                <option value="">Toutes les agences</option>
+                {% for agency in agencies %}
+                    <option value="{{ agency.id }}" {% if selected_agency == agency.id|stringformat:"s" %}selected{% endif %}>
+                        {{ agency.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+
+        <p>
+            <label for="id_format_category">Format</label><br>
+            <select name="format_category" id="id_format_category">
+                <option value="">Tous les formats</option>
+                {% for value, label in format_categories %}
+                    <option value="{{ value }}" {% if selected_format_category == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+
+        <noscript>
+            <button type="submit">Filtrer</button>
+        </noscript>
+    </form>
+
+    <hr>
+
+    {% for panel in panels %}
+        <article style="margin-bottom: 24px;">
+            <h2>
+                <a href="{% url 'public_panel_detail' panel.id %}">
+                    {{ panel.reference }}
+                </a>
+            </h2>
+
+            <p><strong>Agence :</strong> {{ panel.agency.name }}</p>
+            <p><strong>Pays :</strong> {{ panel.get_country_display }}</p>
+            <p><strong>Ville :</strong> {{ panel.city_ref.name|default:panel.city|default:"—" }}</p>
+            <p><strong>Quartier :</strong> {{ panel.district|default:"—" }}</p>
+            <p><strong>Catégorie :</strong> {{ panel.get_format_category_display }}</p>
+            <p><strong>Dimensions :</strong> {{ panel.formatted_dimensions }}</p>
+            <p><strong>Surface :</strong> {{ panel.area_sqm }} m²</p>
+            <p><strong>Description :</strong> {{ panel.description|default:"—" }}</p>
+
+            <p><strong>Faces disponibles :</strong></p>
+            <ul>
+                {% for face in panel.faces.all %}
+                    <li>
+                        Face {{ face.code }} —
+                        {{ face.monthly_price }} / mois —
+                        {{ face.get_operational_status_display }}
+                    </li>
+                {% empty %}
+                    <li>Aucune face renseignée.</li>
+                {% endfor %}
+            </ul>
+
+            <p>
+                <a href="{% url 'public_panel_detail' panel.id %}">Voir le détail</a>
+            </p>
+        </article>
+        <hr>
+    {% empty %}
+        <p>Aucun panneau publié ne correspond à vos critères.</p>
+    {% endfor %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("catalog-filter-form");
+            const countryField = document.getElementById("id_country");
+            const cityField = document.getElementById("id_city");
+            const agencyField = document.getElementById("id_agency");
+            const formatCategoryField = document.getElementById("id_format_category");
+
+            function submitFilters() {
+                form.submit();
+            }
+
+            function loadCities(selectedCityId = "") {
+                const country = countryField.value;
+                cityField.innerHTML = '<option value="">Toutes les villes</option>';
+
+                if (!country) {
+                    submitFilters();
+                    return;
+                }
+
+                fetch(`/api/cities/?country=${country}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.cities.forEach(city => {
+                            const option = document.createElement("option");
+                            option.value = city.id;
+                            option.textContent = city.name;
+
+                            if (String(city.id) === String(selectedCityId)) {
+                                option.selected = true;
+                            }
+
+                            cityField.appendChild(option);
+                        });
+
+                        if (selectedCityId) {
+                            cityField.value = selectedCityId;
+                        }
+                    })
+                    .finally(() => {
+                        submitFilters();
+                    });
+            }
+
+            countryField.addEventListener("change", function () {
+                cityField.value = "";
+                agencyField.value = "";
+                loadCities("");
+            });
+
+            cityField.addEventListener("change", submitFilters);
+            agencyField.addEventListener("change", submitFilters);
+            formatCategoryField.addEventListener("change", submitFilters);
+        });
+    </script>
+</body>
+</html>

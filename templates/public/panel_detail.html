@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Détail panneau public - PubPanels</title>
+</head>
+<body>
+    <h1>{{ panel.reference }}</h1>
+
+    <p><a href="{% url 'public_catalog' %}">Retour au catalogue</a></p>
+
+    <ul>
+        <li><strong>Agence :</strong> {{ panel.agency.name }}</li>
+        <li><strong>Pays :</strong> {{ panel.get_country_display }}</li>
+        <li><strong>Ville :</strong> {{ panel.city_ref.name|default:panel.city|default:"—" }}</li>
+        <li><strong>Quartier :</strong> {{ panel.district|default:"—" }}</li>
+        <li><strong>Catégorie :</strong> {{ panel.get_format_category_display }}</li>
+        <li><strong>Dimensions :</strong> {{ panel.formatted_dimensions }}</li>
+        <li><strong>Surface :</strong> {{ panel.area_sqm }} m²</li>
+        <li><strong>Adresse :</strong> {{ panel.address|default:"—" }}</li>
+        <li><strong>Description :</strong> {{ panel.description|default:"—" }}</li>
+    </ul>
+
+    <h2>Faces du panneau</h2>
+
+    <table border="1" cellpadding="6">
+        <thead>
+            <tr>
+                <th>Face</th>
+                <th>Orientation</th>
+                <th>Prix mensuel</th>
+                <th>Statut opérationnel</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for face in panel.faces.all %}
+                <tr>
+                    <td>{{ face.code }}</td>
+                    <td>{{ face.orientation|default:"—" }}</td>
+                    <td>{{ face.monthly_price }}</td>
+                    <td>{{ face.get_operational_status_display }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">Aucune face renseignée.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p style="margin-top: 16px;">
+        <a href="{% url 'public_reservation_request_for_panel' panel.id %}">Demander une réservation pour ce panneau</a>
+    </p>
+</body>
+</html>

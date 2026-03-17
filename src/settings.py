@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apps.agencies.apps.AgenciesConfig",
     "apps.panels.apps.PanelsConfig",
     "apps.reservations.apps.ReservationsConfig",
+    "apps.locations.apps.LocationsConfig",
 ]
 
 MIDDLEWARE = [

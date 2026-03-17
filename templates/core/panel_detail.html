@@ -22,8 +22,11 @@
         <li><strong>Référence :</strong> {{ panel.reference }}</li>
         <li><strong>Agence :</strong> {{ panel.agency.name }}</li>
         <li><strong>Titre :</strong> {{ panel.title|default:"—" }}</li>
-        <li><strong>Format :</strong> {{ panel.format }}</li>
-        <li><strong>Ville :</strong> {{ panel.city }}</li>
+        <li><strong>Catégorie :</strong> {{ panel.get_format_category_display }}</li>
+        <li><strong>Dimensions :</strong> {{ panel.formatted_dimensions }}</li>
+        <li><strong>Surface :</strong> {{ panel.area_sqm }} m²</li>
+        <li><strong>Pays :</strong> {{ panel.get_country_display }}</li>
+        <li><strong>Ville :</strong> {{ panel.city_ref.name|default:panel.city|default:"—" }}</li>
         <li><strong>Quartier :</strong> {{ panel.district|default:"—" }}</li>
         <li><strong>Adresse :</strong> {{ panel.address|default:"—" }}</li>
         <li><strong>Latitude :</strong> {{ panel.latitude|default:"—" }}</li>

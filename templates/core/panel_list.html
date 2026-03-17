@@ -24,6 +24,8 @@
                 <th>Référence</th>
                 <th>Agence</th>
                 <th>Format</th>
+                <th>Dimensions</th>
+                <th>Pays</th>
                 <th>Ville</th>
                 <th>Quartier</th>
                 <th>Statut</th>
@@ -36,8 +38,10 @@
                 <tr>
                     <td>{{ panel.reference }}</td>
                     <td>{{ panel.agency.name }}</td>
-                    <td>{{ panel.format }}</td>
-                    <td>{{ panel.city }}</td>
+                    <td>{{ panel.get_format_category_display }}</td>
+                    <td>{{ panel.formatted_dimensions }} / {{ panel.area_sqm }} m²</td>
+                    <td>{{ panel.get_country_display }}</td>
+                    <td>{{ panel.city_ref.name|default:panel.city|default:"—" }}</td>
                     <td>{{ panel.district }}</td>
                     <td>{{ panel.get_status_display }}</td>
                     <td>{{ panel.is_published|yesno:"Oui,Non" }}</td>
@@ -49,7 +53,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="8">Aucun panneau trouvé.</td>
+                    <td colspan="10">Aucun panneau trouvé.</td>
                 </tr>
             {% endfor %}
         </tbody>

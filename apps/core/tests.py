@@ -7,22 +7,451 @@ from django.test import TestCase
 from django.urls import reverse
 
 from apps.agencies.models import Agency
+from apps.locations.models import City
 from apps.panels.models import Panel, PanelFace
 from apps.reservations.models import Client, Reservation
 from apps.users.models import User
 
 
+class LocationAndCountryTests(TestCase):
+    def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.abidjan = City.objects.create(
+            country_code="CI",
+            name="Abidjan",
+            slug="abidjan",
+        )
+
+    def test_agency_country_and_city_ref_must_match(self):
+        agency = Agency(
+            name="Agence Test",
+            slug="agence-test",
+            country="BF",
+            city_ref=self.abidjan,
+        )
+
+        with self.assertRaises(ValidationError):
+            agency.full_clean()
+
+    def test_panel_country_and_city_ref_must_match(self):
+        agency = Agency.objects.create(
+            name="Agence Panel",
+            slug="agence-panel",
+            country="BF",
+            city_ref=self.ouaga,
+        )
+
+        panel = Panel(
+            agency=agency,
+            reference="PANEL-TEST",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Abidjan",
+            city_ref=self.abidjan,
+        )
+
+        with self.assertRaises(ValidationError):
+            panel.full_clean()
+
+
+class PanelFormatCategoryValidationTests(TestCase):
+    def setUp(self):
+        self.city = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.agency = Agency.objects.create(
+            name="Agence Format",
+            slug="agence-format",
+            country="BF",
+            city_ref=self.city,
+        )
+
+    def test_small_category_rejects_area_greater_or_equal_12(self):
+        panel = Panel(
+            agency=self.agency,
+            reference="FMT-001",
+            format_category=Panel.FormatCategory.SMALL,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),  # 12 m²
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.city,
+        )
+
+        with self.assertRaises(ValidationError):
+            panel.full_clean()
+
+    def test_standard_category_accepts_area_between_12_and_less_than_24(self):
+        panel = Panel(
+            agency=self.agency,
+            reference="FMT-002",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),  # 12 m²
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.city,
+        )
+
+        panel.full_clean()
+
+    def test_large_category_requires_exactly_24(self):
+        panel = Panel(
+            agency=self.agency,
+            reference="FMT-003",
+            format_category=Panel.FormatCategory.LARGE,
+            width_m=Decimal("6.00"),
+            height_m=Decimal("4.00"),  # 24 m²
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.city,
+        )
+
+        panel.full_clean()
+
+    def test_large_category_rejects_non_24_area(self):
+        panel = Panel(
+            agency=self.agency,
+            reference="FMT-004",
+            format_category=Panel.FormatCategory.LARGE,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),  # 12 m²
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.city,
+        )
+
+        with self.assertRaises(ValidationError):
+            panel.full_clean()
+
+    def test_xl_category_rejects_area_less_or_equal_24(self):
+        panel = Panel(
+            agency=self.agency,
+            reference="FMT-005",
+            format_category=Panel.FormatCategory.XL,
+            width_m=Decimal("6.00"),
+            height_m=Decimal("4.00"),  # 24 m²
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.city,
+        )
+
+        with self.assertRaises(ValidationError):
+            panel.full_clean()
+
+class PublicCatalogTests(TestCase):
+    def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.bobo = City.objects.create(
+            country_code="BF",
+            name="Bobo-Dioulasso",
+            slug="bobo-dioulasso",
+        )
+        self.abidjan = City.objects.create(
+            country_code="CI",
+            name="Abidjan",
+            slug="abidjan",
+        )
+
+        self.active_agency = Agency.objects.create(
+            name="Agence Active",
+            slug="agence-active",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.ouaga,
+        )
+        self.inactive_agency = Agency.objects.create(
+            name="Agence Inactive",
+            slug="agence-inactive",
+            status=Agency.Status.INACTIVE,
+            country="CI",
+            city_ref=self.abidjan,
+        )
+
+        self.public_panel = Panel.objects.create(
+            agency=self.active_agency,
+            reference="PUBLIC-001",
+            format_category=Panel.FormatCategory.LARGE,
+            width_m=Decimal("6.00"),
+            height_m=Decimal("4.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.ouaga,
+            is_published=True,
+        )
+        self.hidden_panel = Panel.objects.create(
+            agency=self.active_agency,
+            reference="HIDDEN-001",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Bobo-Dioulasso",
+            city_ref=self.bobo,
+            is_published=False,
+        )
+        self.inactive_agency_panel = Panel.objects.create(
+            agency=self.inactive_agency,
+            reference="INACTIVE-001",
+            format_category=Panel.FormatCategory.XL,
+            width_m=Decimal("8.00"),
+            height_m=Decimal("4.00"),
+            country="CI",
+            city="Abidjan",
+            city_ref=self.abidjan,
+            is_published=True,
+        )
+
+        PanelFace.objects.create(
+            panel=self.public_panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+        PanelFace.objects.create(
+            panel=self.public_panel,
+            code=PanelFace.FaceCode.B,
+            monthly_price=Decimal("120000.00"),
+        )
+
+    def test_public_catalog_shows_only_published_panels_from_active_agencies(self):
+        response = self.client.get(reverse("public_catalog"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PUBLIC-001")
+        self.assertNotContains(response, "HIDDEN-001")
+        self.assertNotContains(response, "INACTIVE-001")
+
+    def test_public_catalog_can_filter_by_country(self):
+        response = self.client.get(reverse("public_catalog"), {"country": "BF"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PUBLIC-001")
+
+    def test_public_catalog_can_filter_by_city(self):
+        response = self.client.get(reverse("public_catalog"), {"country": "BF", "city": self.ouaga.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PUBLIC-001")
+
+    def test_public_catalog_can_filter_by_agency(self):
+        response = self.client.get(reverse("public_catalog"), {"agency": self.active_agency.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PUBLIC-001")
+
+    def test_public_catalog_can_filter_by_format_category(self):
+        response = self.client.get(
+            reverse("public_catalog"),
+            {"format_category": Panel.FormatCategory.LARGE},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PUBLIC-001")
+
+    def test_public_panel_detail_shows_only_public_panel(self):
+        response = self.client.get(reverse("public_panel_detail", args=[self.public_panel.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PUBLIC-001")
+        self.assertContains(response, "Agence Active")
+        self.assertContains(response, "Ouagadougou")
+        self.assertContains(response, "6.00 m x 4.00 m")
+
+    def test_public_panel_detail_returns_404_for_hidden_panel(self):
+        response = self.client.get(reverse("public_panel_detail", args=[self.hidden_panel.id]))
+
+        self.assertEqual(response.status_code, 404)
+
+
+class PublicReservationRequestTests(TestCase):
+    def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+
+        self.agency = Agency.objects.create(
+            name="Agence Publique",
+            slug="agence-publique",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.ouaga,
+        )
+
+        self.panel = Panel.objects.create(
+            agency=self.agency,
+            reference="PUBLIC-RES-001",
+            format_category=Panel.FormatCategory.LARGE,
+            width_m=Decimal("6.00"),
+            height_m=Decimal("4.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.ouaga,
+            is_published=True,
+        )
+
+        self.face_a = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("150000.00"),
+            operational_status=PanelFace.OperationalStatus.AVAILABLE,
+        )
+        self.face_b = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.B,
+            monthly_price=Decimal("160000.00"),
+            operational_status=PanelFace.OperationalStatus.AVAILABLE,
+        )
+
+    def test_public_request_page_for_panel_loads(self):
+        response = self.client.get(
+            reverse("public_reservation_request_for_panel", args=[self.panel.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "PUBLIC-RES-001")
+        self.assertContains(response, "Agence Publique")
+
+    def test_public_request_creates_client_and_pending_reservation(self):
+        response = self.client.post(
+            reverse("public_reservation_request_for_panel", args=[self.panel.id]),
+            {
+                "company_name": "Entreprise X",
+                "contact_name": "Jean Client",
+                "phone": "70000001",
+                "email": "clientx@test.com",
+                "business_sector": "Commerce",
+                "panel_face": self.face_a.id,
+                "start_date": "2026-10-01",
+                "duration_months": "2",
+                "need_design_help": "on",
+                "notes": "Je souhaite réserver rapidement.",
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("public_reservation_success"))
+
+        client = Client.objects.get(phone="70000001")
+        reservation = Reservation.objects.get(client=client)
+
+        self.assertEqual(client.company_name, "Entreprise X")
+        self.assertEqual(reservation.agency, self.agency)
+        self.assertEqual(reservation.panel_face, self.face_a)
+        self.assertEqual(reservation.source, Reservation.Source.PLATFORM)
+        self.assertEqual(reservation.status, Reservation.Status.PENDING)
+        self.assertEqual(reservation.monthly_price, Decimal("150000.00"))
+        self.assertEqual(reservation.total_price, Decimal("300000.00"))
+        self.assertEqual(reservation.created_by, None)
+        self.assertEqual(reservation.end_date.isoformat(), "2026-11-29")
+
+    def test_public_request_reuses_existing_client(self):
+        existing_client = Client.objects.create(
+            company_name="Entreprise X",
+            contact_name="Jean Client",
+            phone="70000001",
+            email="clientx@test.com",
+        )
+
+        self.client.post(
+            reverse("public_reservation_request_for_panel", args=[self.panel.id]),
+            {
+                "company_name": "Entreprise X",
+                "contact_name": "Jean Client",
+                "phone": "70000001",
+                "email": "clientx@test.com",
+                "business_sector": "Commerce",
+                "panel_face": self.face_b.id,
+                "start_date": "2026-11-01",
+                "duration_months": "1",
+                "notes": "Nouvelle demande.",
+            },
+        )
+
+        self.assertEqual(Client.objects.filter(phone="70000001").count(), 1)
+        reservation = Reservation.objects.get(client=existing_client)
+        self.assertEqual(reservation.panel_face, self.face_b)
+
+    def test_public_request_rejects_face_from_another_panel_when_panel_is_fixed(self):
+        other_panel = Panel.objects.create(
+            agency=self.agency,
+            reference="PUBLIC-RES-002",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.ouaga,
+            is_published=True,
+        )
+        other_face = PanelFace.objects.create(
+            panel=other_panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("120000.00"),
+            operational_status=PanelFace.OperationalStatus.AVAILABLE,
+        )
+
+        response = self.client.post(
+            reverse("public_reservation_request_for_panel", args=[self.panel.id]),
+            {
+                "company_name": "Entreprise X",
+                "contact_name": "Jean Client",
+                "phone": "70000001",
+                "email": "clientx@test.com",
+                "panel_face": other_face.id,
+                "start_date": "2026-10-01",
+                "duration_months": "1",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ce choix ne fait pas partie de ceux disponibles")
+
+
 class PanelCreateViewTests(TestCase):
     def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.bobo = City.objects.create(
+            country_code="BF",
+            name="Bobo-Dioulasso",
+            slug="bobo-dioulasso",
+        )
+        self.abidjan = City.objects.create(
+            country_code="CI",
+            name="Abidjan",
+            slug="abidjan",
+        )
+
         self.agency_a = Agency.objects.create(
             name="Agence A",
             slug="agence-a",
             email="a@test.com",
+            country="BF",
+            city_ref=self.ouaga,
         )
         self.agency_b = Agency.objects.create(
             name="Agence B",
             slug="agence-b",
             email="b@test.com",
+            country="CI",
+            city_ref=self.abidjan,
         )
         self.super_admin = User.objects.create_user(
             username="superadmin",
@@ -46,8 +475,11 @@ class PanelCreateViewTests(TestCase):
                 "agency": self.agency_b.id,
                 "reference": "PNL-SUP-001",
                 "title": "Panneau super admin",
-                "format": "12x4",
-                "city": "Ouagadougou",
+                "format_category": Panel.FormatCategory.LARGE,
+                "width_m": "6.00",
+                "height_m": "4.00",
+                "country": "CI",
+                "city_ref": self.abidjan.id,
                 "district": "Centre",
                 "address": "Avenue 1",
                 "latitude": "12.345678",
@@ -61,6 +493,9 @@ class PanelCreateViewTests(TestCase):
         panel = Panel.objects.get(reference="PNL-SUP-001")
         self.assertRedirects(response, reverse("panel_detail", args=[panel.id]))
         self.assertEqual(panel.agency, self.agency_b)
+        self.assertEqual(panel.country, "CI")
+        self.assertEqual(panel.city_ref, self.abidjan)
+        self.assertEqual(panel.city, "Abidjan")
 
     def test_non_super_admin_is_forced_to_own_agency(self):
         self.client.login(username="manager", password="testpass123")
@@ -71,8 +506,11 @@ class PanelCreateViewTests(TestCase):
                 "agency": self.agency_b.id,
                 "reference": "PNL-MNG-001",
                 "title": "Panneau manager",
-                "format": "4x3",
-                "city": "Bobo-Dioulasso",
+                "format_category": Panel.FormatCategory.STANDARD,
+                "width_m": "4.00",
+                "height_m": "3.00",
+                "country": "BF",
+                "city_ref": self.bobo.id,
                 "district": "Sud",
                 "address": "Rue 2",
                 "latitude": "11.111111",
@@ -105,8 +543,11 @@ class PanelCreateViewTests(TestCase):
                 "agency": self.agency_a.id,
                 "reference": "PNL-MSG-001",
                 "title": "Message",
-                "format": "12x4",
-                "city": "Ouaga",
+                "format_category": Panel.FormatCategory.STANDARD,
+                "width_m": "4.00",
+                "height_m": "3.00",
+                "country": "BF",
+                "city_ref": self.ouaga.id,
                 "status": Panel.Status.ACTIVE,
                 "is_published": "on",
             },
@@ -116,22 +557,54 @@ class PanelCreateViewTests(TestCase):
         messages = [m.message for m in get_messages(response.wsgi_request)]
         self.assertIn("Panneau créé avec succès.", messages)
 
+    def test_cities_api_filters_by_country(self):
+        self.client.login(username="superadmin", password="testpass123")
+
+        response = self.client.get(reverse("cities_by_country_api"), {"country": "BF"})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        returned_names = [item["name"] for item in payload["cities"]]
+        self.assertIn("Ouagadougou", returned_names)
+        self.assertIn("Bobo-Dioulasso", returned_names)
+        self.assertNotIn("Abidjan", returned_names)
+
 
 class PanelDetailAndUpdateViewTests(TestCase):
     def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.bobo = City.objects.create(
+            country_code="BF",
+            name="Bobo-Dioulasso",
+            slug="bobo-dioulasso",
+        )
+        self.abidjan = City.objects.create(
+            country_code="CI",
+            name="Abidjan",
+            slug="abidjan",
+        )
+
         self.agency_a = Agency.objects.create(
             name="Agence A",
             slug="agence-a",
             email="a@test.com",
+            country="BF",
+            city_ref=self.ouaga,
         )
         self.agency_b = Agency.objects.create(
             name="Agence B",
             slug="agence-b",
             email="b@test.com",
+            country="CI",
+            city_ref=self.abidjan,
         )
 
         self.super_admin = User.objects.create_user(
-            username="superadmin",
+            username="superadminx",
             password="testpass123",
             role=User.Role.SUPER_ADMIN,
             agency=self.agency_a,
@@ -153,8 +626,12 @@ class PanelDetailAndUpdateViewTests(TestCase):
             agency=self.agency_a,
             reference="PANEL-A",
             title="Panneau A",
-            format="12x4",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
             city="Ouagadougou",
+            city_ref=self.ouaga,
             district="Centre",
             status=Panel.Status.ACTIVE,
             is_published=True,
@@ -167,13 +644,14 @@ class PanelDetailAndUpdateViewTests(TestCase):
         )
 
     def test_super_admin_can_view_panel_detail(self):
-        self.client.login(username="superadmin", password="testpass123")
+        self.client.login(username="superadminx", password="testpass123")
 
         response = self.client.get(reverse("panel_detail", args=[self.panel_a.id]))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "PANEL-A")
         self.assertContains(response, "Panneau A")
+        self.assertContains(response, "Ouagadougou")
 
     def test_agency_user_can_view_own_panel_detail(self):
         self.client.login(username="managera", password="testpass123")
@@ -191,7 +669,7 @@ class PanelDetailAndUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_super_admin_can_update_panel(self):
-        self.client.login(username="superadmin", password="testpass123")
+        self.client.login(username="superadminx", password="testpass123")
 
         response = self.client.post(
             reverse("panel_update", args=[self.panel_a.id]),
@@ -199,8 +677,11 @@ class PanelDetailAndUpdateViewTests(TestCase):
                 "agency": self.agency_b.id,
                 "reference": "PANEL-A-UPDATED",
                 "title": "Panneau modifié",
-                "format": "4x3",
-                "city": "Bobo-Dioulasso",
+                "format_category": Panel.FormatCategory.XL,
+                "width_m": "8.00",
+                "height_m": "4.00",
+                "country": "CI",
+                "city_ref": self.abidjan.id,
                 "district": "Sud",
                 "address": "Nouvelle adresse",
                 "latitude": "11.500000",
@@ -215,7 +696,8 @@ class PanelDetailAndUpdateViewTests(TestCase):
         self.assertRedirects(response, reverse("panel_detail", args=[self.panel_a.id]))
         self.assertEqual(self.panel_a.agency, self.agency_b)
         self.assertEqual(self.panel_a.reference, "PANEL-A-UPDATED")
-        self.assertEqual(self.panel_a.title, "Panneau modifié")
+        self.assertEqual(self.panel_a.city_ref, self.abidjan)
+        self.assertEqual(self.panel_a.city, "Abidjan")
 
     def test_agency_user_is_forced_to_keep_own_agency_on_update(self):
         self.client.login(username="managera", password="testpass123")
@@ -226,8 +708,11 @@ class PanelDetailAndUpdateViewTests(TestCase):
                 "agency": self.agency_b.id,
                 "reference": "PANEL-A-UPDATED-2",
                 "title": "Panneau agence",
-                "format": "12x4",
-                "city": "Ouagadougou",
+                "format_category": Panel.FormatCategory.STANDARD,
+                "width_m": "4.00",
+                "height_m": "3.00",
+                "country": "BF",
+                "city_ref": self.bobo.id,
                 "district": "Centre",
                 "address": "Adresse agence",
                 "latitude": "12.350000",
@@ -241,7 +726,8 @@ class PanelDetailAndUpdateViewTests(TestCase):
         self.panel_a.refresh_from_db()
         self.assertRedirects(response, reverse("panel_detail", args=[self.panel_a.id]))
         self.assertEqual(self.panel_a.agency, self.agency_a)
-        self.assertEqual(self.panel_a.reference, "PANEL-A-UPDATED-2")
+        self.assertEqual(self.panel_a.city_ref, self.bobo)
+        self.assertEqual(self.panel_a.city, "Bobo-Dioulasso")
 
     def test_agency_user_cannot_update_other_agency_panel(self):
         self.client.login(username="managerb", password="testpass123")
@@ -259,8 +745,11 @@ class PanelDetailAndUpdateViewTests(TestCase):
                 "agency": self.agency_a.id,
                 "reference": "PANEL-A-MSG",
                 "title": "Message update",
-                "format": "12x4",
-                "city": "Ouagadougou",
+                "format_category": Panel.FormatCategory.STANDARD,
+                "width_m": "4.00",
+                "height_m": "3.00",
+                "country": "BF",
+                "city_ref": self.ouaga.id,
                 "district": "Centre",
                 "status": Panel.Status.ACTIVE,
                 "is_published": "on",
@@ -274,16 +763,27 @@ class PanelDetailAndUpdateViewTests(TestCase):
 
 class PanelFaceModelTests(TestCase):
     def setUp(self):
+        self.city = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
         self.agency = Agency.objects.create(
             name="Agence Test",
             slug="agence-test",
             email="agence@test.com",
+            country="BF",
+            city_ref=self.city,
         )
         self.panel = Panel.objects.create(
             agency=self.agency,
             reference="PANEL-FACES",
-            format="12x4",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
             city="Ouagadougou",
+            city_ref=self.city,
         )
 
     def test_can_create_face_codes_up_to_d(self):
@@ -348,15 +848,30 @@ class PanelFaceModelTests(TestCase):
 
 class ReservationCreateViewTests(TestCase):
     def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.bobo = City.objects.create(
+            country_code="BF",
+            name="Bobo-Dioulasso",
+            slug="bobo-dioulasso",
+        )
+
         self.agency_a = Agency.objects.create(
             name="Agence A",
             slug="agence-a",
             email="a@test.com",
+            country="BF",
+            city_ref=self.ouaga,
         )
         self.agency_b = Agency.objects.create(
             name="Agence B",
             slug="agence-b",
             email="b@test.com",
+            country="BF",
+            city_ref=self.bobo,
         )
 
         self.super_admin = User.objects.create_user(
@@ -375,14 +890,22 @@ class ReservationCreateViewTests(TestCase):
         self.panel_a = Panel.objects.create(
             agency=self.agency_a,
             reference="PANEL-A",
-            format="12x4",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
             city="Ouagadougou",
+            city_ref=self.ouaga,
         )
         self.panel_b = Panel.objects.create(
             agency=self.agency_b,
             reference="PANEL-B",
-            format="12x4",
+            format_category=Panel.FormatCategory.LARGE,
+            width_m=Decimal("6.00"),
+            height_m=Decimal("4.00"),
+            country="BF",
             city="Bobo-Dioulasso",
+            city_ref=self.bobo,
         )
 
         self.face_a1 = PanelFace.objects.create(

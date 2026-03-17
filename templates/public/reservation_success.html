@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Demande envoyée - PubPanels</title>
+</head>
+<body>
+    <h1>Votre demande a bien été envoyée</h1>
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p>Notre équipe pourra examiner votre demande et vous recontacter.</p>
+    <p><a href="{% url 'public_catalog' %}">Retour au catalogue</a></p>
+</body>
+</html>
