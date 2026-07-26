@@ -1,0 +1,135 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}{{ page_title }} - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Images de face{% endblock %}
+{% block backoffice_breadcrumb %}
+    Backoffice / Panneaux / {{ panel.reference }} / Face {{ face.code }} / {% if image_obj %}Modifier l’image{% else %}Ajouter une image{% endif %}
+{% endblock %}
+{% block backoffice_content_title %}{{ page_title }}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Associez des visuels à la face réservée et définissez l’image principale ou l’image de couverture du panneau.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'panel_detail' panel.id %}">Retour au panneau</a>
+        <a class="btn" href="{% url 'panel_face_update' face.id %}">Modifier la face</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="panel-form-layout">
+    <div class="form-sections">
+        <section class="form-card">
+            <h2 class="form-section-title">Image de la face</h2>
+
+            {% if form.non_field_errors %}
+                <ul class="form-error-list">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div style="display: none;">
+                    {{ form.face }}
+                </div>
+
+                <div class="form-field-grid">
+                    <p class="form-field-wide">
+                        <label for="{{ form.image.id_for_label }}">Fichier image</label>
+                        {{ form.image }}
+                        {% if form.image.errors %}
+                            <div class="field-error">{{ form.image.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p class="form-field-wide">
+                        <label for="{{ form.caption.id_for_label }}">{{ form.caption.label }}</label>
+                        {{ form.caption }}
+                        {% if form.caption.help_text %}
+                            <div class="field-help">{{ form.caption.help_text }}</div>
+                        {% endif %}
+                        {% if form.caption.errors %}
+                            <div class="field-error">{{ form.caption.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p>
+                        <label for="{{ form.display_order.id_for_label }}">{{ form.display_order.label }}</label>
+                        {{ form.display_order }}
+                        {% if form.display_order.help_text %}
+                            <div class="field-help">{{ form.display_order.help_text }}</div>
+                        {% endif %}
+                        {% if form.display_order.errors %}
+                            <div class="field-error">{{ form.display_order.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                            {{ form.is_primary }}
+                            {{ form.is_primary.label }}
+                        </label>
+                        {% if form.is_primary.help_text %}
+                            <div class="field-help">{{ form.is_primary.help_text }}</div>
+                        {% endif %}
+                        {% if form.is_primary.errors %}
+                            <div class="field-error">{{ form.is_primary.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p class="form-field-wide">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                            {{ form.is_cover_for_panel }}
+                            {{ form.is_cover_for_panel.label }}
+                        </label>
+                        {% if form.is_cover_for_panel.help_text %}
+                            <div class="field-help">{{ form.is_cover_for_panel.help_text }}</div>
+                        {% endif %}
+                        {% if form.is_cover_for_panel.errors %}
+                            <div class="field-error">{{ form.is_cover_for_panel.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="actions-row" style="margin-top: 18px;">
+                    <button type="submit" class="btn accent">{{ submit_label }}</button>
+                    <a class="btn secondary" href="{% url 'panel_detail' panel.id %}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <aside class="form-side-card">
+        <h2 class="form-section-title">Contexte</h2>
+
+        <ul class="detail-list">
+            <li><strong>Panneau</strong> {{ panel.reference }}</li>
+            <li><strong>Nom</strong> {{ panel.title|default:"—" }}</li>
+            <li><strong>Face</strong> {{ face.code }}</li>
+            <li><strong>Orientation</strong> {{ face.orientation|default:"—" }}</li>
+            <li><strong>Prix mensuel</strong> {{ face.monthly_price }}</li>
+        </ul>
+
+        {% if image_obj and image_obj.image %}
+            <h2 class="form-section-title" style="margin-top: 22px;">Aperçu actuel</h2>
+            <img
+                src="{{ image_obj.image.url }}"
+                alt="{{ image_obj.caption|default:panel.reference }}"
+                style="width: 100%; border-radius: 12px; border: 1px solid var(--border);"
+            >
+        {% endif %}
+
+        <div class="side-note" style="margin-top: 18px;">
+            L’image principale sera prioritaire dans la galerie de la face. L’image de couverture pourra ensuite servir dans le catalogue panneau.
+        </div>
+    </aside>
+</section>
+{% endblock %}

@@ -5,7 +5,7 @@ from django import forms
 from apps.panels.models import PanelFace
 
 from .models import Client, Reservation
-
+from django.utils import timezone
 
 class PublicReservationRequestForm(forms.Form):
     company_name = forms.CharField(max_length=150, required=False, label="Entreprise")
@@ -35,23 +35,38 @@ class PublicReservationRequestForm(forms.Form):
         label="Commentaire",
     )
 
-    def __init__(self, *args, panel=None, **kwargs):
+    def __init__(self, *args, panel=None, period_start=None, period_end=None, **kwargs):
         self.panel = panel
+        self.period_start = period_start
+        self.period_end = period_end
         super().__init__(*args, **kwargs)
 
-        queryset = PanelFace.objects.select_related("panel", "panel__agency").filter(
-            panel__is_published=True,
-            panel__agency__status="active",
-            operational_status=PanelFace.OperationalStatus.AVAILABLE,
+        queryset = (
+            PanelFace.objects.select_related("panel", "panel__agency")
+            .prefetch_related("reservations")
+            .filter(
+                panel__is_published=True,
+                panel__agency__status="active",
+                operational_status=PanelFace.OperationalStatus.AVAILABLE,
+            )
+            .order_by("panel__reference", "code")
         )
 
-        if self.panel is not None:
-            queryset = queryset.filter(panel=self.panel)
+        filtered_face_ids = []
 
-        self.fields["panel_face"].queryset = queryset.order_by("panel__reference", "code")
+        for face in queryset:
+            if self.panel is not None and face.panel_id != self.panel.id:
+                continue
 
-        if self.panel is not None and queryset.count() == 1:
-            self.fields["panel_face"].initial = queryset.first()
+            if face.is_available_for_period(self.period_start, self.period_end):
+                filtered_face_ids.append(face.id)
+
+        self.fields["panel_face"].queryset = PanelFace.objects.filter(
+            id__in=filtered_face_ids
+        ).order_by("panel__reference", "code")
+
+        if self.panel is not None and self.fields["panel_face"].queryset.count() == 1:
+            self.fields["panel_face"].initial = self.fields["panel_face"].queryset.first()
 
     def clean_panel_face(self):
         panel_face = self.cleaned_data["panel_face"]
@@ -76,12 +91,47 @@ class PublicReservationRequestForm(forms.Form):
         end_date = start_date + timedelta(days=(30 * duration_months) - 1)
         return start_date, end_date
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        panel_face = cleaned_data.get("panel_face")
+        start_date = cleaned_data.get("start_date")
+        duration_months = cleaned_data.get("duration_months")
+
+        if start_date and start_date < timezone.localdate():
+            self.add_error(
+                "start_date",
+                "La date de début ne peut pas être antérieure à aujourd’hui.",
+            )
+
+        if panel_face and start_date and duration_months:
+            end_date = start_date + timedelta(days=(30 * duration_months) - 1)
+
+            conflicts = Reservation.objects.filter(
+                panel_face=panel_face,
+                status__in=Reservation.get_blocking_statuses(),
+                start_date__lte=end_date,
+                end_date__gte=start_date,
+            )
+
+            if conflicts.exists():
+                self.add_error(
+                    "panel_face",
+                    "Cette face est déjà réservée sur la période sélectionnée.",
+                )
+
+        return cleaned_data
+
     def get_or_create_client(self):
         company_name = self.cleaned_data["company_name"]
         contact_name = self.cleaned_data["contact_name"]
         phone = self.cleaned_data["phone"]
         email = self.cleaned_data["email"]
         business_sector = self.cleaned_data["business_sector"]
+
+        panel_face = self.cleaned_data.get("panel_face")
+        if not panel_face:
+            raise forms.ValidationError("Face du panneau invalide.")
 
         client = Client.objects.filter(
             contact_name=contact_name,
@@ -101,7 +151,9 @@ class PublicReservationRequestForm(forms.Form):
                 client.save()
             return client
 
+
         return Client.objects.create(
+            agency=panel_face.panel.agency,
             company_name=company_name,
             contact_name=contact_name,
             phone=phone,

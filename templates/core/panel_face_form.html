@@ -1,0 +1,134 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}{{ page_title }} - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Faces{% endblock %}
+{% block backoffice_breadcrumb %}
+    Backoffice / Panneaux / {{ panel.reference }} / {% if face %}Modifier la face{% else %}Créer une face{% endif %}
+{% endblock %}
+{% block backoffice_content_title %}{{ page_title }}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Configurez une face réservable avec son prix, son orientation et son statut opérationnel.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'panel_detail' panel.id %}">Retour au panneau</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="panel-form-layout">
+    <div class="form-sections">
+        <section class="form-card">
+            <h2 class="form-section-title">Configuration de la face</h2>
+
+            {% if form.non_field_errors %}
+                <ul class="form-error-list">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div style="display: none;">
+                    {{ form.panel }}
+                </div>
+
+                <div class="form-field-grid">
+                    <div class="form-field">
+                        <label for="{{ form.code.id_for_label }}">{{ form.code.label }}</label>
+                        {{ form.code }}
+
+                        {% if form.code.help_text %}
+                            <div class="field-help">{{ form.code.help_text }}</div>
+                        {% endif %}
+
+                        {% if form.code.errors %}
+                            <div class="field-error">{{ form.code.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.operational_status.id_for_label }}">{{ form.operational_status.label }}</label>
+                        {{ form.operational_status }}
+
+                        {% if form.operational_status.help_text %}
+                            <div class="field-help">{{ form.operational_status.help_text }}</div>
+                        {% endif %}
+
+                        {% if form.operational_status.errors %}
+                            <div class="field-error">{{ form.operational_status.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="{{ form.orientation.id_for_label }}">{{ form.orientation.label }}</label>
+                        {{ form.orientation }}
+
+                        {% if form.orientation.help_text %}
+                            <div class="field-help">{{ form.orientation.help_text }}</div>
+                        {% endif %}
+
+                        {% if form.orientation.errors %}
+                            <div class="field-error">{{ form.orientation.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.monthly_price.id_for_label }}">{{ form.monthly_price.label }}</label>
+                        {{ form.monthly_price }}
+
+                        {% if form.monthly_price.help_text %}
+                            <div class="field-help">{{ form.monthly_price.help_text }}</div>
+                        {% endif %}
+
+                        {% if form.monthly_price.errors %}
+                            <div class="field-error">{{ form.monthly_price.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+
+                        {% if form.notes.help_text %}
+                            <div class="field-help">{{ form.notes.help_text }}</div>
+                        {% endif %}
+
+                        {% if form.notes.errors %}
+                            <div class="field-error">{{ form.notes.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="actions-row" style="margin-top: 18px;">
+                    <button type="submit" class="btn accent">{{ submit_label }}</button>
+                    <a class="btn secondary" href="{% url 'panel_detail' panel.id %}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <aside class="form-side-card">
+        <h2 class="form-section-title">Panneau concerné</h2>
+
+        <ul class="detail-list">
+            <li><strong>Référence</strong> {{ panel.reference }}</li>
+            <li><strong>Nom</strong> {{ panel.title|default:"—" }}</li>
+            <li><strong>Régie</strong> {{ panel.agency.name }}</li>
+            <li><strong>Ville</strong> {{ panel.geographic_unit.full_path }}</li>
+            <li><strong>Statut panneau</strong> {{ panel.get_status_display }}</li>
+        </ul>
+
+        <div class="side-note" style="margin-top: 18px;">
+            La face est l’unité réellement réservable. Son prix et son statut opérationnel doivent donc être exacts.
+        </div>
+    </aside>
+</section>
+{% endblock %}

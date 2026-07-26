@@ -1,62 +1,79 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Panneaux - PubPanels</title>
-</head>
-<body>
-    <h1>Liste des panneaux</h1>
+{% extends "base_backoffice.html" %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
+{% block title %}Panneaux - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Panneaux{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Panneaux{% endblock %}
+{% block backoffice_content_title %}Liste des panneaux{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Consultez les panneaux publiés ou non, vérifiez leur localisation et accédez rapidement à leur fiche détaillée.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn accent" href="{% url 'panel_create' %}">Créer un panneau</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    <div class="table-toolbar">
+        <h2 class="section-title" style="margin: 0;">Panneaux</h2>
+        <div class="table-count">{{ panels|length }} panneau(x)</div>
+    </div>
+
+    {% if panels %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Référence</th>
+                        <th>Régie</th>
+                        <th>Catégorie</th>
+                        <th>Ville</th>
+                        <th>Quartier</th>
+                        <th>Statut</th>
+                        <th>Publication</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for panel in panels %}
+                        <tr>
+                            <td>
+                                <strong>{{ panel.reference }}</strong>
+                            </td>
+                            <td>{{ panel.agency.name }}</td>
+                            <td>{{ panel.get_format_category_display }}</td>
+                            <td>{{ panel.geographic_unit.root.name }}</td>
+                            <td>{{ panel.geographic_unit.path_below_root|default:"—" }}</td>
+                            <td>
+                                <span class="status-badge">
+                                    {{ panel.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if panel.is_published %}
+                                    <span class="status-badge status-active">Publié</span>
+                                {% else %}
+                                    <span class="status-badge status-cancelled">Non publié</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-links">
+                                    <a href="{% url 'panel_detail' panel.id %}">Voir</a>
+                                    <a href="{% url 'panel_update' panel.id %}">Modifier</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Aucun panneau trouvé.</p>
     {% endif %}
-
-    <p><a href="{% url 'dashboard' %}">Retour au dashboard</a></p>
-    <p><a href="{% url 'panel_create' %}">Créer un panneau</a></p>
-
-    <table border="1" cellpadding="6">
-        <thead>
-            <tr>
-                <th>Référence</th>
-                <th>Agence</th>
-                <th>Format</th>
-                <th>Dimensions</th>
-                <th>Pays</th>
-                <th>Ville</th>
-                <th>Quartier</th>
-                <th>Statut</th>
-                <th>Publié</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for panel in panels %}
-                <tr>
-                    <td>{{ panel.reference }}</td>
-                    <td>{{ panel.agency.name }}</td>
-                    <td>{{ panel.get_format_category_display }}</td>
-                    <td>{{ panel.formatted_dimensions }} / {{ panel.area_sqm }} m²</td>
-                    <td>{{ panel.get_country_display }}</td>
-                    <td>{{ panel.city_ref.name|default:panel.city|default:"—" }}</td>
-                    <td>{{ panel.district }}</td>
-                    <td>{{ panel.get_status_display }}</td>
-                    <td>{{ panel.is_published|yesno:"Oui,Non" }}</td>
-                    <td>
-                        <a href="{% url 'panel_detail' panel.id %}">Voir</a>
-                        |
-                        <a href="{% url 'panel_update' panel.id %}">Modifier</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="10">Aucun panneau trouvé.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+</section>
+{% endblock %}

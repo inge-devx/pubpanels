@@ -1,0 +1,19 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Import terminé - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Panneaux{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Panneaux / Import / Résumé{% endblock %}
+{% block backoffice_content_title %}Import terminé{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    <p><strong>{{ created_count }}</strong> panneau(x) créé(s).</p>
+    <p><strong>{{ skipped_count }}</strong> ligne(s) ignorée(s).</p>
+
+    <div class="actions-row" style="margin-top: 18px;">
+        <a class="btn accent" href="{% url 'panel_list' %}">Voir mes panneaux</a>
+        <a class="btn secondary" href="{% url 'panel_import_upload' %}">Nouvel import</a>
+    </div>
+</section>
+{% endblock %}

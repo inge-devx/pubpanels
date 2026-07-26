@@ -1,0 +1,62 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Mes imports - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Panneaux{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Panneaux / Imports{% endblock %}
+{% block backoffice_content_title %}Mes imports{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn accent" href="{% url 'panel_import_upload' %}">Nouvel import</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    {% if batches %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fichier</th>
+                        <th>Statut</th>
+                        <th>Progression</th>
+                        <th>Créé le</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches %}
+                        <tr>
+                            <td>{{ batch.source_filename }}</td>
+                            <td>
+                                <span class="status-badge {% if batch.status == 'completed' %}status-active{% endif %}">
+                                    {{ batch.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ batch.processed_rows }} / {{ batch.total_rows }} ({{ batch.progress_percent }}%)</td>
+                            <td>{{ batch.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if batch.status == "completed" %}
+                                    <a href="{% url 'panel_import_summary' batch.id %}">Voir le résumé</a>
+                                {% elif batch.status == "configuring" %}
+                                    <a href="{% url 'panel_import_configure' batch.id %}">Configurer</a>
+                                {% else %}
+                                    <a href="{% url 'panel_import_wizard' batch.id %}">Continuer</a>
+                                {% endif %}
+                                <form method="post" action="{% url 'panel_import_cancel' batch.id %}" style="display: inline;" onsubmit="return confirm('Annuler cet import ?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn danger" style="padding: 4px 10px; font-size: 12px; margin-left: 6px;">Annuler</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Aucun import pour l’instant.</p>
+    {% endif %}
+</section>
+{% endblock %}

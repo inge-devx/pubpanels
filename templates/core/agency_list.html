@@ -1,0 +1,64 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Régies - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Régies{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Régies{% endblock %}
+{% block backoffice_content_title %}Liste des régies{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Gérez l’ensemble des régies partenaires de la plateforme.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn accent" href="{% url 'agency_create' %}">Créer une régie</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    <div class="table-toolbar">
+        <h2 class="section-title" style="margin: 0;">Régies</h2>
+        <div class="table-count">{{ agencies|length }} régie(s)</div>
+    </div>
+
+    {% if agencies %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Pays</th>
+                        <th>Localisation</th>
+                        <th>Statut</th>
+                        <th>Commission</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agency in agencies %}
+                        <tr>
+                            <td><strong>{{ agency.name }}</strong></td>
+                            <td>{{ agency.get_country_display }}</td>
+                            <td>{{ agency.geographic_unit.full_path }}</td>
+                            <td>
+                                <span class="status-badge">{{ agency.get_status_display }}</span>
+                            </td>
+                            <td>{{ agency.commission_rate }} %</td>
+                            <td>
+                                <div class="action-links">
+                                    <a href="{% url 'agency_update' agency.id %}">Modifier</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Aucune régie enregistrée.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/public.css' %}">
+{% endblock %}
+
+{% block body %}
+<header class="topbar public-topbar">
+    <div class="public-brand">
+        <span>Pub</span><span>Panels</span>
+    </div>
+
+    <div class="topbar-links">
+        <a class="public-nav-link is-active" href="{% url 'public_catalog' %}">Catalogue</a>
+    </div>
+</header>
+
+<main class="public-main">
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% block public_content %}{% endblock %}
+</main>
+{% endblock %}

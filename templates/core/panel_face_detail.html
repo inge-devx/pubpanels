@@ -1,0 +1,219 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Détail face - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Faces{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Panneaux / {{ panel.reference }} / Face {{ face.code }}{% endblock %}
+{% block backoffice_content_title %}Face {{ face.code }} du panneau {{ panel.reference }}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Gérez la face, ses informations de commercialisation et l’ensemble de ses images.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'panel_detail' panel.id %}">Retour au panneau</a>
+        <a class="btn" href="{% url 'panel_face_update' face.id %}">Modifier la face</a>
+        <a class="btn accent" href="{% url 'panel_face_image_create' face.id %}">Ajouter une image</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="panel-detail-layout">
+    <div>
+        <div class="content-card panel-gallery">
+            {% with first_image=face.images.all.0 %}
+                {% if first_image %}
+                    <img
+                        id="panel-main-image"
+                        class="panel-main-image"
+                        src="{{ first_image.image.url }}"
+                        alt="{{ first_image.caption|default:panel.reference }}"
+                    >
+                {% else %}
+                    <img
+                        id="panel-main-image"
+                        class="panel-main-image"
+                        src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1200&auto=format&fit=crop"
+                        alt="{{ panel.reference }}"
+                    >
+                {% endif %}
+            {% endwith %}
+
+            <div class="panel-thumbnails">
+                {% for image in face.images.all %}
+                    <img
+                        class="panel-thumbnail {% if forloop.first %}is-active{% endif %}"
+                        src="{{ image.image.url }}"
+                        data-full-src="{{ image.image.url }}"
+                        data-alt="{{ image.caption|default:panel.reference }}"
+                        alt="{{ image.caption|default:panel.reference }}"
+                    >
+                {% empty %}
+                    <img
+                        class="panel-thumbnail is-active"
+                        src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1200&auto=format&fit=crop"
+                        data-full-src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1200&auto=format&fit=crop"
+                        data-alt="{{ panel.reference }}"
+                        alt="{{ panel.reference }}"
+                    >
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel-detail-sections">
+            <div class="content-card panel-tabs-card">
+                <h2 class="section-title" style="margin-top: 0;">Images de la face</h2>
+
+                {% if face.images.all %}
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Légende</th>
+                                    <th>Principale</th>
+                                    <th>Couverture panneau</th>
+                                    <th>Ordre</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for image in face.images.all %}
+                                    <tr>
+                                        <td>{{ image.caption|default:"Sans légende" }}</td>
+                                        <td>{% if image.is_primary %}Oui{% else %}Non{% endif %}</td>
+                                        <td>{% if image.is_cover_for_panel %}Oui{% else %}Non{% endif %}</td>
+                                        <td>{{ image.display_order }}</td>
+                                        <td>
+                                            <a href="{% url 'panel_face_image_update' image.id %}">Modifier l’image</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="muted">Aucune image renseignée pour cette face.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="content-card panel-info-card" style="margin-bottom: 18px;">
+            <h2 class="panel-detail-title">Informations de la face</h2>
+            <p class="panel-detail-location">
+                {{ panel.geographic_unit.full_path|default:"—" }}
+            </p>
+
+            <div class="panel-kv-list">
+                <div class="panel-kv-item">
+                    <span>Panneau</span>
+                    <strong>{{ panel.reference }}</strong>
+                </div>
+                <div class="panel-kv-item">
+                    <span>Nom du panneau</span>
+                    <strong>{{ panel.title|default:"—" }}</strong>
+                </div>
+                <div class="panel-kv-item">
+                    <span>Face</span>
+                    <strong>{{ face.code }}</strong>
+                </div>
+                <div class="panel-kv-item">
+                    <span>Orientation</span>
+                    <strong>{{ face.orientation|default:"—" }}</strong>
+                </div>
+                <div class="panel-kv-item">
+                    <span>Prix mensuel</span>
+                    <strong>{{ face.monthly_price }}</strong>
+                </div>
+                <div class="panel-kv-item">
+                    <span>Statut opérationnel</span>
+                    <strong>{{ face.get_operational_status_display }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {% if face.notes %}
+            <div class="content-card panel-tabs-card">
+                <h2 class="section-title" style="margin-top: 0;">Notes</h2>
+                <p style="margin-bottom: 0;">{{ face.notes }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="content-card face-summary-card">
+            <p class="muted" style="margin-top: 0; margin-bottom: 6px;">Résumé de gestion</p>
+            <h2 class="panel-detail-title" style="margin-bottom: 0;">Face {{ face.code }}</h2>
+
+            <div class="face-summary-price">
+                {{ face.images.count }}
+            </div>
+            <div class="face-summary-sub">image(s) liée(s) à cette face</div>
+
+            <div class="panel-kv-list">
+                <div class="panel-kv-item">
+                    <span>Image principale</span>
+                    <strong>
+                        {% if face.images.all %}
+                            {% with primary=face.images.all|dictsort:"display_order"|first %}Voir galerie{% endwith %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="panel-kv-item">
+                    <span>Panneau publié</span>
+                    <strong>{% if panel.is_published %}Oui{% else %}Non{% endif %}</strong>
+                </div>
+
+                <div class="panel-kv-item">
+                    <span>Statut panneau</span>
+                    <strong>{{ panel.get_status_display }}</strong>
+                </div>
+
+                <div class="panel-kv-item">
+                    <span>Carte</span>
+                    <strong>
+                        {% if panel.google_maps_url %}
+                            <a href="{{ panel.google_maps_url }}" target="_blank" rel="noopener noreferrer">Voir sur la carte</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+
+            <div class="action-column">
+                <a class="btn" href="{% url 'panel_face_update' face.id %}">Modifier la face</a>
+                <a class="btn accent" href="{% url 'panel_face_image_create' face.id %}">Ajouter une image</a>
+                <a class="btn secondary" href="{% url 'panel_detail' panel.id %}">Retour au panneau</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const mainImage = document.getElementById("panel-main-image");
+    const thumbnails = document.querySelectorAll(".panel-thumbnail");
+
+    thumbnails.forEach((thumb) => {
+        thumb.addEventListener("click", function () {
+            thumbnails.forEach((item) => item.classList.remove("is-active"));
+            thumb.classList.add("is-active");
+
+            if (mainImage) {
+                mainImage.src = thumb.dataset.fullSrc;
+                mainImage.alt = thumb.dataset.alt || "";
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

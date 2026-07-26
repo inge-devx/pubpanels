@@ -1,54 +1,116 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Réservations - PubPanels</title>
-</head>
-<body>
-    <h1>Liste des réservations</h1>
+{% extends "base_backoffice.html" %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
+{% block title %}Réservations - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Réservations{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Réservations{% endblock %}
+{% block backoffice_content_title %}Liste des réservations{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Consultez, filtrez et traitez les réservations selon leur statut et leur échéance.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn accent" href="{% url 'reservation_create' %}">Créer une réservation</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card backoffice-filter-card">
+    <h2 class="section-title" style="margin-top: 0;">Filtres</h2>
+
+    <form method="get" id="reservation-filter-form">
+        <div class="backoffice-filter-row">
+            <div class="backoffice-filter-field">
+                <label for="id_status">Statut</label>
+                <select name="status" id="id_status">
+                    <option value="">Tous les statuts</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="backoffice-filter-field">
+                <label>&nbsp;</label>
+                <a class="btn secondary" href="{% url 'reservation_list' %}">Réinitialiser</a>
+            </div>
+        </div>
+    </form>
+</section>
+
+<section class="content-card">
+    <div class="table-toolbar">
+        <h2 class="section-title" style="margin: 0;">Réservations</h2>
+        <div class="table-count">{{ reservations|length }} réservation(s)</div>
+    </div>
+
+    {% if reservations %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Régie</th>
+                        <th>Panneau</th>
+                        <th>Face</th>
+                        <th>Client</th>
+                        <th>Source</th>
+                        <th>Statut</th>
+                        <th>Début</th>
+                        <th>Fin</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in reservations %}
+                        <tr>
+                            <td>{{ reservation.agency.name }}</td>
+                            <td>{{ reservation.panel_face.panel.reference }}</td>
+                            <td>Face {{ reservation.panel_face.code }}</td>
+                            <td>{{ reservation.client }}</td>
+                            <td>{{ reservation.get_source_display }}</td>
+                            <td>
+                                <span class="status-badge status-{{ reservation.status }}">
+                                    {{ reservation.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ reservation.start_date }}</td>
+                            <td>{{ reservation.end_date }}</td>
+                            <td>
+                                <div class="action-links">
+                                    <a href="{% url 'reservation_detail' reservation.id %}">Voir</a>
+
+                                    {% if reservation.status == "pending" or reservation.status == "approved" %}
+                                        <a href="{% url 'reservation_update' reservation.id %}">Modifier</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Aucune réservation trouvée pour les critères actuels.</p>
     {% endif %}
+</section>
+{% endblock %}
 
-    <p><a href="{% url 'dashboard' %}">Retour au dashboard</a></p>
-    <p><a href="{% url 'reservation_create' %}">Créer une réservation</a></p>
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("reservation-filter-form");
+    const statusField = document.getElementById("id_status");
 
-    <table border="1" cellpadding="6">
-        <thead>
-            <tr>
-                <th>Agence</th>
-                <th>Panneau</th>
-                <th>Face</th>
-                <th>Client</th>
-                <th>Source</th>
-                <th>Statut</th>
-                <th>Début</th>
-                <th>Fin</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for reservation in reservations %}
-                <tr>
-                    <td>{{ reservation.agency.name }}</td>
-                    <td>{{ reservation.panel_face.panel.reference }}</td>
-                    <td>{{ reservation.panel_face.code }}</td>
-                    <td>{{ reservation.client }}</td>
-                    <td>{{ reservation.get_source_display }}</td>
-                    <td>{{ reservation.get_status_display }}</td>
-                    <td>{{ reservation.start_date }}</td>
-                    <td>{{ reservation.end_date }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="8">Aucune réservation trouvée.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+    if (form && statusField) {
+        statusField.addEventListener("change", function () {
+            form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

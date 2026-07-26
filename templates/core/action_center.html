@@ -1,0 +1,120 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Centre d'actions - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Centre d'actions{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Centre d'actions{% endblock %}
+{% block backoffice_content_title %}Ce qui attend une décision{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Traitez rapidement les réservations en attente, les campagnes à activer et celles à clôturer.
+    </p>
+{% endblock %}
+
+{% block backoffice_content %}
+
+<div class="action-board">
+
+    <section class="action-column">
+        <div class="action-column-head">
+            <span class="action-column-title">À traiter</span>
+            <span class="action-column-badge badge-warning">{{ to_process|length }}</span>
+        </div>
+
+        <div class="action-column-body">
+            {% if to_process %}
+                {% for reservation in to_process %}
+                    <div class="action-card">
+                        <p class="action-card-title">{{ reservation.client }}</p>
+                        <p class="action-card-sub">{{ reservation.panel_face.panel.reference }} - Face {{ reservation.panel_face.code }}</p>
+                        <p class="action-card-sub">{{ reservation.start_date }} → {{ reservation.end_date }}</p>
+
+                        <div class="action-card-buttons">
+                            <a href="{% url 'reservation_detail' reservation.id %}" class="action-btn action-btn-ghost">Voir</a>
+                            <form method="post" action="{% url 'reservation_change_status' reservation.id 'approved' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'action_center' %}">
+                                <button type="submit" class="action-btn action-btn-success">Approuver</button>
+                            </form>
+                            <form method="post" action="{% url 'reservation_change_status' reservation.id 'rejected' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'action_center' %}">
+                                <button type="submit" class="action-btn action-btn-danger">Rejeter</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="action-column-empty">Rien à traiter.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="action-column">
+        <div class="action-column-head">
+            <span class="action-column-title">À activer</span>
+            <span class="action-column-badge badge-accent">{{ to_activate|length }}</span>
+        </div>
+
+        <div class="action-column-body">
+            {% if to_activate %}
+                {% for reservation in to_activate %}
+                    <div class="action-card">
+                        <p class="action-card-title">{{ reservation.client }}</p>
+                        <p class="action-card-sub">{{ reservation.panel_face.panel.reference }} - Face {{ reservation.panel_face.code }}</p>
+                        <p class="action-card-sub">
+                            Début : {{ reservation.start_date }}
+                            {% if reservation.start_date < today %}
+                                <span class="action-card-flag">en retard</span>
+                            {% endif %}
+                        </p>
+
+                        <div class="action-card-buttons">
+                            <a href="{% url 'reservation_detail' reservation.id %}" class="action-btn action-btn-ghost">Voir</a>
+                            <form method="post" action="{% url 'reservation_change_status' reservation.id 'active' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'action_center' %}">
+                                <button type="submit" class="action-btn action-btn-success">Activer</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="action-column-empty">Rien à activer.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="action-column">
+        <div class="action-column-head">
+            <span class="action-column-title">À clôturer</span>
+            <span class="action-column-badge badge-pro">{{ to_close|length }}</span>
+        </div>
+
+        <div class="action-column-body">
+            {% if to_close %}
+                {% for reservation in to_close %}
+                    <div class="action-card">
+                        <p class="action-card-title">{{ reservation.client }}</p>
+                        <p class="action-card-sub">{{ reservation.panel_face.panel.reference }} - Face {{ reservation.panel_face.code }}</p>
+                        <p class="action-card-sub">Fin : {{ reservation.end_date }}</p>
+
+                        <div class="action-card-buttons">
+                            <a href="{% url 'reservation_detail' reservation.id %}" class="action-btn action-btn-ghost">Voir</a>
+                            <form method="post" action="{% url 'reservation_change_status' reservation.id 'completed' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'action_center' %}">
+                                <button type="submit" class="action-btn action-btn-warning">Marquer terminée</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="action-column-empty">Rien à clôturer.</p>
+            {% endif %}
+        </div>
+    </section>
+
+</div>
+
+{% endblock %}

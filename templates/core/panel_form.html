@@ -1,79 +1,329 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ page_title }} - PubPanels</title>
-</head>
-<body>
-    <h1>{{ page_title }}</h1>
+{% extends "base_backoffice.html" %}
+{% load static %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
+{% block title %}{{ page_title }} - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Panneaux{% endblock %}
+
+{% block backoffice_breadcrumb %}
+    Backoffice / Panneaux / {% if panel %}Modification{% else %}Création{% endif %}
+{% endblock %}
+
+{% block backoffice_content_title %}{{ page_title }}{% endblock %}
+
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Renseignez les informations du panneau, sa localisation et son statut de publication.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'panel_list' %}">Retour à la liste</a>
+        {% if panel %}
+            <a class="btn" href="{% url 'panel_detail' panel.id %}">Voir le détail</a>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="panel-form-layout">
+    <div class="form-sections">
+        <section class="form-card">
+            <h2 class="form-section-title">Informations générales</h2>
+
+            {% if form.non_field_errors %}
+                <ul class="form-error-list">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-field-grid">
+                    <div class="form-field">
+                        <label for="{{ form.agency.id_for_label }}">{{ form.agency.label }}</label>
+                        {{ form.agency }}
+                        {% if form.agency.help_text %}
+                            <div class="field-help">{{ form.agency.help_text }}</div>
+                        {% endif %}
+                        {% if form.agency.errors %}
+                            <div class="field-error">{{ form.agency.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
+                        {{ form.reference }}
+                        {% if form.reference.help_text %}
+                            <div class="field-help">{{ form.reference.help_text }}</div>
+                        {% endif %}
+                        {% if form.reference.errors %}
+                            <div class="field-error">{{ form.reference.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                        {{ form.title }}
+                        {% if form.title.help_text %}
+                            <div class="field-help">{{ form.title.help_text }}</div>
+                        {% endif %}
+                        {% if form.title.errors %}
+                            <div class="field-error">{{ form.title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.format_category.id_for_label }}">{{ form.format_category.label }}</label>
+                        {{ form.format_category }}
+                        {% if form.format_category.help_text %}
+                            <div class="field-help">{{ form.format_category.help_text }}</div>
+                        {% endif %}
+                        {% if form.format_category.errors %}
+                            <div class="field-error">{{ form.format_category.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                        {{ form.status }}
+                        {% if form.status.help_text %}
+                            <div class="field-help">{{ form.status.help_text }}</div>
+                        {% endif %}
+                        {% if form.status.errors %}
+                            <div class="field-error">{{ form.status.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.width_m.id_for_label }}">{{ form.width_m.label }}</label>
+                        {{ form.width_m }}
+                        {% if form.width_m.help_text %}
+                            <div class="field-help">{{ form.width_m.help_text }}</div>
+                        {% endif %}
+                        {% if form.width_m.errors %}
+                            <div class="field-error">{{ form.width_m.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.height_m.id_for_label }}">{{ form.height_m.label }}</label>
+                        {{ form.height_m }}
+                        {% if form.height_m.help_text %}
+                            <div class="field-help">{{ form.height_m.help_text }}</div>
+                        {% endif %}
+                        {% if form.height_m.errors %}
+                            <div class="field-error">{{ form.height_m.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h2 class="form-section-title" style="margin-top: 22px;">Localisation</h2>
+
+                <div class="form-field-grid">
+                    <div class="form-field">
+                        <label for="{{ form.country.id_for_label }}">{{ form.country.label }}</label>
+                        {{ form.country }}
+                        {% if form.country.help_text %}
+                            <div class="field-help">{{ form.country.help_text }}</div>
+                        {% endif %}
+                        {% if form.country.errors %}
+                            <div class="field-error">{{ form.country.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label>{{ form.geographic_unit.label }}</label>
+                        <div class="geo-popover" id="geo-popover-form" data-city="{{ form.geographic_unit.value|default_if_none:'' }}">
+                            <button type="button" class="geo-popover-trigger" id="geo-popover-form-trigger">
+                                <span id="geo-popover-form-label">S\u00e9lectionner une localisation</span>
+                                <span aria-hidden="true">&#9662;</span>
+                            </button>
+                            <div class="geo-popover-panel" id="geo-popover-form-panel" hidden>
+                                <div class="geo-breadcrumb-readonly" id="geo-breadcrumb-form"></div>
+                                <div class="geo-levels" id="geo-levels-form"></div>
+                                <div class="geo-popover-footer">
+                                    <button type="button" class="geo-clear-btn" id="geo-clear-form-btn">Effacer</button>
+                                    <button type="button" class="geo-validate-btn" id="geo-validate-form-btn">Valider</button>
+                                </div>
+                            </div>
+                            <div style="display: none;">
+                                {{ form.geographic_unit }}
+                            </div>
+                        </div>
+                        {% if form.geographic_unit.errors %}
+                            <div class="field-error">{{ form.geographic_unit.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
+                        {{ form.address }}
+                        {% if form.address.help_text %}
+                            <div class="field-help">{{ form.address.help_text }}</div>
+                        {% endif %}
+                        {% if form.address.errors %}
+                            <div class="field-error">{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.latitude.id_for_label }}">{{ form.latitude.label }}</label>
+                        {{ form.latitude }}
+                        {% if form.latitude.help_text %}
+                            <div class="field-help">{{ form.latitude.help_text }}</div>
+                        {% endif %}
+                        {% if form.latitude.errors %}
+                            <div class="field-error">{{ form.latitude.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.longitude.id_for_label }}">{{ form.longitude.label }}</label>
+                        {{ form.longitude }}
+                        {% if form.longitude.help_text %}
+                            <div class="field-help">{{ form.longitude.help_text }}</div>
+                        {% endif %}
+                        {% if form.longitude.errors %}
+                            <div class="field-error">{{ form.longitude.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h2 class="form-section-title" style="margin-top: 22px;">Description et publication</h2>
+
+                <div class="form-field-grid">
+                    <div class="form-field form-field-wide">
+                        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                        {{ form.description }}
+                        {% if form.description.help_text %}
+                            <div class="field-help">{{ form.description.help_text }}</div>
+                        {% endif %}
+                        {% if form.description.errors %}
+                            <div class="field-error">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label class="checkbox-label">
+                            {{ form.is_published }}
+                            <span>{{ form.is_published.label }}</span>
+                        </label>
+
+                        {% if form.is_published.help_text %}
+                            <div class="field-help">{{ form.is_published.help_text }}</div>
+                        {% endif %}
+                        {% if form.is_published.errors %}
+                            <div class="field-error">{{ form.is_published.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="actions-row" style="margin-top: 18px;">
+                    <button type="submit" class="btn accent">{{ submit_label }}</button>
+                    <a class="btn secondary" href="{% url 'panel_list' %}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <aside class="form-side-card">
+        <h2 class="form-section-title">Règles métier</h2>
+
+        <div class="side-note">
+            Si un panneau n’est pas <strong>actif</strong>, il sera automatiquement retiré du catalogue public.
+        </div>
+
+        <ul class="detail-list">
+            <li>
+                <strong>Actif</strong>
+                Peut rester publié si le reste des informations est cohérent.
+            </li>
+            <li>
+                <strong>Inactif</strong>
+                Sera automatiquement non publié.
+            </li>
+            <li>
+                <strong>Maintenance</strong>
+                Sera automatiquement non publié.
+            </li>
         </ul>
-    {% endif %}
 
-    {% if form.non_field_errors %}
-        <ul>
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+        {% if panel %}
+            <h2 class="form-section-title" style="margin-top: 22px;">Panneau en cours</h2>
+            <ul class="detail-list">
+                <li><strong>Référence</strong> {{ panel.reference }}</li>
+                <li><strong>Nom</strong> {{ panel.title|default:"—" }}</li>
+                <li><strong>Statut</strong> {{ panel.get_status_display }}</li>
+                <li>
+                    <strong>Publié</strong>
+                    {% if panel.is_published %}Oui{% else %}Non{% endif %}
+                </li>
+            </ul>
+        {% endif %}
+    </aside>
+</section>
+{% endblock %}
 
-    <p><a href="{% url 'panel_list' %}">Retour à la liste des panneaux</a></p>
+{% block extra_scripts %}
+<script src="{% static 'js/geo-picker.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const statusField = document.getElementById("id_status");
+    const publishedField = document.getElementById("id_is_published");
+    const countryField = document.getElementById("id_country");
+    const popoverForm = document.getElementById("geo-popover-form");
+    const geoSelect = document.getElementById("id_geographic_unit");
 
-    {% if panel %}
-        <p><a href="{% url 'panel_detail' panel.id %}">Voir le détail du panneau</a></p>
-    {% endif %}
+    function syncPublicationWithStatus() {
+        if (!statusField || !publishedField) return;
+        if (statusField.value !== "active") {
+            publishedField.checked = false;
+            publishedField.disabled = true;
+        } else {
+            publishedField.disabled = false;
+        }
+    }
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">{{ submit_label }}</button>
-    </form>
+    if (statusField && publishedField) {
+        syncPublicationWithStatus();
+        statusField.addEventListener("change", syncPublicationWithStatus);
+    }
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const countryField = document.getElementById("id_country");
-            const cityField = document.getElementById("id_city_ref");
-
-            function loadCities(selectedCityId = "") {
-                const country = countryField.value;
-
-                if (!country) {
-                    cityField.innerHTML = '<option value="">---------</option>';
-                    return;
-                }
-
-                fetch(`/api/cities/?country=${country}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        cityField.innerHTML = '<option value="">---------</option>';
-
-                        data.cities.forEach(city => {
-                            const option = document.createElement("option");
-                            option.value = city.id;
-                            option.textContent = city.name;
-
-                            if (String(city.id) === String(selectedCityId)) {
-                                option.selected = true;
-                            }
-
-                            cityField.appendChild(option);
-                        });
-                    });
-            }
-
-            const initialCityId = cityField.value;
-            loadCities(initialCityId);
-
-            countryField.addEventListener("change", function () {
-                loadCities("");
-            });
+    if (countryField && popoverForm && geoSelect) {
+        GeoPicker.create({
+            mode: "form",
+            triggerEl: document.getElementById("geo-popover-form-trigger"),
+            labelEl: document.getElementById("geo-popover-form-label"),
+            panelEl: document.getElementById("geo-popover-form-panel"),
+            breadcrumbEl: document.getElementById("geo-breadcrumb-form"),
+            levelsContainerEl: document.getElementById("geo-levels-form"),
+            validateBtnEl: document.getElementById("geo-validate-form-btn"),
+            clearBtnEl: document.getElementById("geo-clear-form-btn"),
+            cityHiddenEl: geoSelect,
+            getExternalCountry: function () { return countryField.value; },
+            getExternalCountryLabel: function () {
+                const opt = countryField.options[countryField.selectedIndex];
+                return opt ? opt.text : countryField.value;
+            },
+            onExternalCountryChange: function (cb) {
+                countryField.addEventListener("change", function () {
+                    const opt = countryField.options[countryField.selectedIndex];
+                    cb(countryField.value, opt ? opt.text : countryField.value);
+                });
+            },
+            initialCountryCode: countryField.value,
+            initialCityId: popoverForm.dataset.city,
+            defaultLabel: "S\u00e9lectionner une localisation",
+            autoSubmit: false,
+            apiUnitsUrl: "/api/geographic-units/",
+            apiChainUrl: "/api/geographic-unit-chain/",
         });
-    </script>
-</body>
-</html>
+    }
+});
+</script>
+{% endblock %}

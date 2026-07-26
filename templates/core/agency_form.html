@@ -1,0 +1,194 @@
+{% extends "base_backoffice.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Régies{% endblock %}
+{% block backoffice_breadcrumb %}
+    Backoffice / Régies / {% if agency %}Modification{% else %}Création{% endif %}
+{% endblock %}
+{% block backoffice_content_title %}{{ page_title }}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Renseignez les informations de la régie, sa localisation et ses documents personnalisés.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'agency_list' %}">Retour à la liste</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="panel-form-layout">
+    <div class="form-sections">
+        <section class="form-card">
+            <h2 class="form-section-title">Informations générales</h2>
+
+            {% if form.non_field_errors %}
+                <ul class="form-error-list">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="form-field-grid">
+                    <div class="form-field">
+                        <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="field-error">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.slug.id_for_label }}">{{ form.slug.label }}</label>
+                        {{ form.slug }}
+                        {% if form.slug.errors %}<div class="field-error">{{ form.slug.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}<div class="field-error">{{ form.phone.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}<div class="field-error">{{ form.status.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.commission_rate.id_for_label }}">{{ form.commission_rate.label }}</label>
+                        {{ form.commission_rate }}
+                        {% if form.commission_rate.errors %}<div class="field-error">{{ form.commission_rate.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.alert_days_before_expiry.id_for_label }}">{{ form.alert_days_before_expiry.label }}</label>
+                        {{ form.alert_days_before_expiry }}
+                        {% if form.alert_days_before_expiry.errors %}<div class="field-error">{{ form.alert_days_before_expiry.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <h2 class="form-section-title" style="margin-top: 22px;">Localisation</h2>
+
+                <div class="form-field-grid">
+                    <div class="form-field">
+                        <label for="{{ form.country.id_for_label }}">{{ form.country.label }}</label>
+                        {{ form.country }}
+                        {% if form.country.errors %}<div class="field-error">{{ form.country.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label>{{ form.geographic_unit.label }}</label>
+                        <div class="geo-popover" id="geo-popover-form" data-city="{{ form.geographic_unit.value|default_if_none:'' }}">
+                            <button type="button" class="geo-popover-trigger" id="geo-popover-form-trigger">
+                                <span id="geo-popover-form-label">Sélectionner une localisation</span>
+                                <span aria-hidden="true">&#9662;</span>
+                            </button>
+                            <div class="geo-popover-panel" id="geo-popover-form-panel" hidden>
+                                <div class="geo-breadcrumb-readonly" id="geo-breadcrumb-form"></div>
+                                <div class="geo-levels" id="geo-levels-form"></div>
+                                <div class="geo-popover-footer">
+                                    <button type="button" class="geo-clear-btn" id="geo-clear-form-btn">Effacer</button>
+                                    <button type="button" class="geo-validate-btn" id="geo-validate-form-btn">Valider</button>
+                                </div>
+                            </div>
+                            <div style="display: none;">{{ form.geographic_unit }}</div>
+                        </div>
+                        {% if form.geographic_unit.errors %}<div class="field-error">{{ form.geographic_unit.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}<div class="field-error">{{ form.address.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <h2 class="form-section-title" style="margin-top: 22px;">Documents personnalisés</h2>
+
+                <div class="form-field-grid">
+                    <div class="form-field">
+                        <label for="{{ form.header_image.id_for_label }}">{{ form.header_image.label }}</label>
+                        {% if agency and agency.header_image %}
+                            <img src="{{ agency.header_image.url }}" alt="En-tête actuel" style="max-width: 100%; margin-bottom: 8px; border: 1px solid var(--border);">
+                        {% endif %}
+                        {{ form.header_image }}
+                        <div class="field-help">{{ form.header_image.help_text }}</div>
+                        {% if form.header_image.errors %}<div class="field-error">{{ form.header_image.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.footer_image.id_for_label }}">{{ form.footer_image.label }}</label>
+                        {% if agency and agency.footer_image %}
+                            <img src="{{ agency.footer_image.url }}" alt="Pied de page actuel" style="max-width: 100%; margin-bottom: 8px; border: 1px solid var(--border);">
+                        {% endif %}
+                        {{ form.footer_image }}
+                        <div class="field-help">{{ form.footer_image.help_text }}</div>
+                        {% if form.footer_image.errors %}<div class="field-error">{{ form.footer_image.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="actions-row" style="margin-top: 18px;">
+                    <button type="submit" class="btn accent">{{ submit_label }}</button>
+                    <a class="btn secondary" href="{% url 'agency_list' %}">Annuler</a>
+                </div>
+            </form>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/geo-picker.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const countryField = document.getElementById("id_country");
+    const popoverForm = document.getElementById("geo-popover-form");
+    const geoSelect = document.getElementById("id_geographic_unit");
+
+    if (countryField && popoverForm && geoSelect) {
+        GeoPicker.create({
+            mode: "form",
+            triggerEl: document.getElementById("geo-popover-form-trigger"),
+            labelEl: document.getElementById("geo-popover-form-label"),
+            panelEl: document.getElementById("geo-popover-form-panel"),
+            breadcrumbEl: document.getElementById("geo-breadcrumb-form"),
+            levelsContainerEl: document.getElementById("geo-levels-form"),
+            validateBtnEl: document.getElementById("geo-validate-form-btn"),
+            clearBtnEl: document.getElementById("geo-clear-form-btn"),
+            cityHiddenEl: geoSelect,
+            getExternalCountry: function () { return countryField.value; },
+            getExternalCountryLabel: function () {
+                const opt = countryField.options[countryField.selectedIndex];
+                return opt ? opt.text : countryField.value;
+            },
+            onExternalCountryChange: function (cb) {
+                countryField.addEventListener("change", function () {
+                    const opt = countryField.options[countryField.selectedIndex];
+                    cb(countryField.value, opt ? opt.text : countryField.value);
+                });
+            },
+            initialCountryCode: countryField.value,
+            initialCityId: popoverForm.dataset.city,
+            defaultLabel: "Sélectionner une localisation",
+            autoSubmit: false,
+            apiUnitsUrl: "/api/geographic-units/",
+            apiChainUrl: "/api/geographic-unit-chain/",
+        });
+    }
+});
+</script>
+{% endblock %}

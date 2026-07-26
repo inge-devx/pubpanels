@@ -1,33 +1,212 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Demande de réservation - PubPanels</title>
-</head>
-<body>
-    <h1>Demande de réservation</h1>
+{% extends "base_public.html" %}
+{% load static %}
 
-    {% if panel %}
-        <p><strong>Panneau concerné :</strong> {{ panel.reference }}</p>
-        <p><strong>Agence :</strong> {{ panel.agency.name }}</p>
-        <p><strong>Ville :</strong> {{ panel.city_ref.name|default:panel.city|default:"—" }}</p>
-        <p><a href="{% url 'public_panel_detail' panel.id %}">Retour au détail du panneau</a></p>
-    {% else %}
-        <p><a href="{% url 'public_catalog' %}">Retour au catalogue</a></p>
-    {% endif %}
+{% block title %}Demande de réservation - PubPanels{% endblock %}
 
-    {% if form.non_field_errors %}
-        <ul>
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+{% block public_content %}
+<section class="content-card" style="margin-bottom: 18px;">
+    <h1 class="page-title">Demande de réservation de face</h1>
+    <p class="muted" style="margin-bottom: 0;">
+        Renseignez vos informations pour demander la réservation de la face sélectionnée.
+    </p>
+</section>
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Envoyer la demande</button>
-    </form>
-</body>
-</html>
+<section class="request-layout">
+    <aside class="content-card request-summary-card">
+        <h2 class="section-title" style="margin-top: 0;">Face à réserver</h2>
+
+        {% if selected_face and selected_face.images.all %}
+            <img
+                class="request-summary-image"
+                src="{{ selected_face.images.all.0.image.url }}"
+                alt="{{ selected_face.images.all.0.caption|default:panel.reference }}"
+            >
+        {% else %}
+            <img
+                class="request-summary-image"
+                src="{% static 'images/panel-placeholder.jpg' %}"
+                alt="{{ panel.reference|default:'Panneau' }}"
+            >
+        {% endif %}
+
+        {% if panel %}
+            <h3 class="request-summary-title">
+                {{ panel.title|default:panel.reference }}
+            </h3>
+
+            <p class="muted" style="margin: 0 0 8px 0;">
+                {{ panel.agency.name }}
+            </p>
+
+            <p class="muted" style="margin: 0 0 8px 0;">
+                {{ panel.geographic_unit.full_path|default:"—" }}
+            </p>
+
+            <p class="muted" style="margin: 0 0 12px 0;">
+                {{ panel.formatted_dimensions }}
+                {% if panel.area_sqm %} • {{ panel.area_sqm }} m²{% endif %}
+            </p>
+        {% endif %}
+
+        {% if selected_face %}
+            <div class="request-summary-face">Face {{ selected_face.code }}</div>
+
+            {% if face_locked %}
+                <p class="muted" style="margin-top: 0;">
+                    Cette face est verrouillée pour cette demande.
+                </p>
+            {% else %}
+                <p class="muted" style="margin-top: 0;">
+                    La face affichée est présélectionnée pour vous aider à démarrer.
+                </p>
+            {% endif %}
+
+            <ul class="detail-list">
+                <li><strong>Orientation :</strong> {{ selected_face.orientation|default:"—" }}</li>
+                <li><strong>Disponibilité :</strong> {{ selected_face.get_operational_status_display }}</li>
+                <li><strong>Images :</strong> {{ selected_face.images.count }}</li>
+            </ul>
+
+            <div class="request-summary-price">{{ selected_face.monthly_price }}</div>
+            <div class="request-summary-sub">Prix HT • location mensuelle</div>
+        {% else %}
+            <p class="muted">
+                Aucune face n’a été présélectionnée.
+            </p>
+        {% endif %}
+
+        {% if panel %}
+            <div class="actions-row" style="margin-top: 16px;">
+                <a class="btn secondary" href="{% url 'public_panel_detail' panel.id %}{% if selected_face %}?face={{ selected_face.id }}{% endif %}{% if form.start_date.value and form.duration_months.value %}{% if selected_face %}&{% else %}?{% endif %}start_date={{ form.start_date.value }}&duration_months={{ form.duration_months.value }}{% endif %}">
+                    Changer de face
+                </a>
+            </div>
+        {% endif %}
+    </aside>
+
+    <section class="content-card request-form-card">
+        {% if requested_start_date and requested_end_date %}
+            <p class="muted">
+                Demande pour la période du {{ requested_start_date }} au {{ requested_end_date }}
+            </p>
+        {% endif %}
+        <h2 class="section-title" style="margin-top: 0;">Vos informations</h2>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <ul class="messages">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if form.panel_face %}
+                <div style="display: none;">
+                    {{ form.panel_face }}
+                </div>
+                {% if form.panel_face.errors %}
+                    <ul class="messages">
+                        {% for error in form.panel_face.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endif %}
+
+            <div class="form-grid">
+                <p>
+                    <label for="{{ form.contact_name.id_for_label }}">Nom complet *</label>
+                    {{ form.contact_name }}
+                    {% if form.contact_name.errors %}
+                        <span class="form-help">{{ form.contact_name.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p>
+                    <label for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <span class="form-help">{{ form.email.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p>
+                    <label for="{{ form.phone.id_for_label }}">Téléphone *</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <span class="form-help">{{ form.phone.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p>
+                    <label for="{{ form.company_name.id_for_label }}">Entreprise</label>
+                    {{ form.company_name }}
+                    {% if form.company_name.errors %}
+                        <span class="form-help">{{ form.company_name.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p class="request-form-wide">
+                    <label for="{{ form.business_sector.id_for_label }}">Secteur d’activité</label>
+                    {{ form.business_sector }}
+                    {% if form.business_sector.errors %}
+                        <span class="form-help">{{ form.business_sector.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p>
+                    <label for="{{ form.start_date.id_for_label }}">Date de début *</label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}
+                        <span class="form-help">{{ form.start_date.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p>
+                    <label for="{{ form.duration_months.id_for_label }}">Nombre de mois *</label>
+                    {{ form.duration_months }}
+                    <span class="form-help">1 mois commercial = 30 jours.</span>
+                    {% if form.duration_months.errors %}
+                        <span class="form-help">{{ form.duration_months.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p class="request-form-wide">
+                    <label for="{{ form.notes.id_for_label }}">Message</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <span class="form-help">{{ form.notes.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
+                <p class="request-form-wide">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                        {{ form.need_design_help }}
+                        Besoin d’aide pour le design
+                    </label>
+                    {% if form.need_design_help.errors %}
+                        <span class="form-help">{{ form.need_design_help.errors.0 }}</span>
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="actions-row" style="margin-top: 10px;">
+                <button type="submit" class="btn accent">Envoyer la demande</button>
+
+                {% if panel %}
+                    <a class="btn secondary" href="{% url 'public_panel_detail' panel.id %}{% if selected_face %}?face={{ selected_face.id }}{% endif %}">
+                        Retour au détail
+                    </a>
+                {% else %}
+                    <a class="btn secondary" href="{% url 'public_catalog' %}">
+                        Retour au catalogue
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+</section>
+{% endblock %}

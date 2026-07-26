@@ -1,20 +1,80 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>PubPanels</title>
-</head>
-<body>
-    <h1>PubPanels</h1>
+{% extends "base_public.html" %}
 
-    <p><a href="{% url 'public_catalog' %}">Voir le catalogue public</a></p>
+{% block title %}PubPanels - Choisissez les bons emplacements publicitaires{% endblock %}
 
-    {% if user.is_authenticated %}
-        <p>Connecté en tant que {{ user.username }}</p>
-        <p><a href="{% url 'dashboard' %}">Accéder au dashboard</a></p>
-        <p><a href="{% url 'logout' %}">Se déconnecter</a></p>
-    {% else %}
-        <p><a href="{% url 'login' %}">Se connecter</a></p>
-    {% endif %}
-</body>
-</html>
+{% block public_content %}
+
+<section class="home-hero">
+    <div class="home-hero-content">
+        <h1>
+            Choisissez les bons panneaux pour vos campagnes publicitaires
+        </h1>
+
+        <p class="muted">
+            Trouvez rapidement des emplacements visibles, comparez les options disponibles et lancez vos campagnes en toute simplicité.
+        </p>
+
+        <div class="home-hero-actions">
+            <a class="btn accent" href="{% url 'public_catalog' %}">
+                Voir les panneaux disponibles
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="home-section">
+    <h2>Un problème simple</h2>
+
+    <p>
+        Aujourd’hui, les campagnes sur panneaux sont souvent basées sur des choix approximatifs :
+        informations incomplètes, supports dispersés, manque de visibilité sur les disponibilités.
+    </p>
+
+    <p>
+        Résultat : des campagnes moins efficaces, même avec de bons visuels.
+    </p>
+</section>
+
+<section class="home-section">
+    <h2>Notre approche</h2>
+
+    <p>
+        Nous vous aidons à choisir les bons emplacements en vous donnant une vision claire des panneaux disponibles,
+        de leur localisation et de leur potentiel d’exposition.
+    </p>
+
+    <p>
+        L’objectif : améliorer l’impact de vos campagnes en prenant de meilleures décisions sur les emplacements.
+    </p>
+</section>
+
+<section class="home-section">
+    <h2>Comment ça marche</h2>
+
+    <div class="home-steps">
+        <div class="home-step">
+            <strong>1. Explorez</strong>
+            <p>Parcourez les panneaux disponibles selon votre zone et votre besoin.</p>
+        </div>
+
+        <div class="home-step">
+            <strong>2. Comparez</strong>
+            <p>Analysez les options et choisissez les emplacements les plus pertinents.</p>
+        </div>
+
+        <div class="home-step">
+            <strong>3. Réservez</strong>
+            <p>Envoyez une demande directement à l’régie.</p>
+        </div>
+    </div>
+</section>
+
+<section class="home-cta">
+    <h2>Prêt à lancer votre campagne ?</h2>
+
+    <a class="btn accent" href="{% url 'public_catalog' %}">
+        Accéder au catalogue
+    </a>
+</section>
+
+{% endblock %}

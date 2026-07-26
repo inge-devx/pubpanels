@@ -13,7 +13,8 @@ DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv(
     "ALLOWED_HOSTS",
-    "127.0.0.1,localhost"
+    "127.0.0.1,localhost,192.168.11.109"
+
 ).split(",")
 
 # Applications installées
@@ -30,6 +31,7 @@ INSTALLED_APPS = [
     "apps.panels.apps.PanelsConfig",
     "apps.reservations.apps.ReservationsConfig",
     "apps.locations.apps.LocationsConfig",
+    "apps.geography.apps.GeographyConfig",
 ]
 
 MIDDLEWARE = [
@@ -105,5 +107,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "users.User"
 
-LOGIN_REDIRECT_URL = "dashboard"
+LOGIN_REDIRECT_URL = "action_center"
 LOGOUT_REDIRECT_URL = "home"
+
+# Email configuration (MVP)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@pubpanels.local"

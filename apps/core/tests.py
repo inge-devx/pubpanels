@@ -1,6 +1,7 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
+from django.utils import timezone
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -8,9 +9,12 @@ from django.urls import reverse
 
 from apps.agencies.models import Agency
 from apps.locations.models import City
-from apps.panels.models import Panel, PanelFace
+from apps.panels.models import Panel, PanelFace, PanelImage
 from apps.reservations.models import Client, Reservation
 from apps.users.models import User
+from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
+
 
 
 class LocationAndCountryTests(TestCase):
@@ -274,6 +278,93 @@ class PublicCatalogTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+class PanelMapAndImagesTests(TestCase):
+    def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+
+        self.agency = Agency.objects.create(
+            name="Agence Images",
+            slug="agence-images",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.ouaga,
+            email="images@test.com",
+        )
+
+        self.super_admin = User.objects.create_user(
+            username="super_images",
+            password="testpass123",
+            role=User.Role.SUPER_ADMIN,
+            agency=self.agency,
+        )
+
+        self.panel = Panel.objects.create(
+            agency=self.agency,
+            reference="IMG-PANEL-001",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.ouaga,
+            latitude=Decimal("12.371430"),
+            longitude=Decimal("-1.519660"),
+            is_published=True,
+        )
+
+    def test_panel_generates_google_maps_url_from_coordinates(self):
+        self.assertEqual(
+            self.panel.google_maps_url,
+            "https://www.google.com/maps?q=12.371430,-1.519660",
+        )
+
+    def test_public_panel_detail_shows_google_maps_link(self):
+        response = self.client.get(
+            reverse("public_panel_detail", args=[self.panel.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Voir sur la carte")
+        self.assertContains(
+            response,
+            "https://www.google.com/maps?q=12.371430,-1.519660",
+        )
+
+    def test_backoffice_panel_detail_shows_google_maps_link(self):
+        self.client.login(username="super_images", password="testpass123")
+
+        response = self.client.get(
+            reverse("panel_detail", args=[self.panel.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Voir sur la carte")
+        self.assertContains(
+            response,
+            "https://www.google.com/maps?q=12.371430,-1.519660",
+        )
+
+    def test_panel_accepts_primary_image(self):
+        image_file = SimpleUploadedFile(
+            "panel.jpg",
+            b"fake-image-content",
+            content_type="image/jpeg",
+        )
+
+        panel_image = self.panel.images.create(
+            image=image_file,
+            image_type=PanelImage.ImageType.FACE,
+            caption="Vue de face",
+            is_primary=True,
+            display_order=1,
+        )
+
+        self.assertEqual(panel_image.panel, self.panel)
+        self.assertTrue(panel_image.is_primary)
 
 class PublicReservationRequestTests(TestCase):
     def setUp(self):
@@ -419,6 +510,618 @@ class PublicReservationRequestTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Ce choix ne fait pas partie de ceux disponibles")
+
+class ReservationEmailNotificationTests(TestCase):
+    def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+
+        self.agency = Agency.objects.create(
+            name="Agence Email",
+            slug="agence-email",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.ouaga,
+            email="agency@test.com",
+        )
+
+        self.manager = User.objects.create_user(
+            username="manager_email",
+            password="testpass123",
+            role=User.Role.AGENCY_MANAGER,
+            agency=self.agency,
+        )
+
+        self.panel = Panel.objects.create(
+            agency=self.agency,
+            reference="EMAIL-PANEL-001",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.ouaga,
+            is_published=True,
+        )
+
+        self.face_a = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+            operational_status=PanelFace.OperationalStatus.AVAILABLE,
+        )
+
+        self.client_obj = Client.objects.create(
+            company_name="Client Email",
+            contact_name="Jean Email",
+            phone="70222222",
+            email="client-email@test.com",
+        )
+
+    def test_public_request_sends_internal_email_to_agency(self):
+        response = self.client.post(
+            reverse("public_reservation_request_for_panel", args=[self.panel.id]),
+            {
+                "company_name": "Entreprise Email",
+                "contact_name": "Jean Email",
+                "phone": "70222222",
+                "email": "client-email@test.com",
+                "business_sector": "Commerce",
+                "panel_face": self.face_a.id,
+                "start_date": "2026-10-01",
+                "duration_months": "1",
+                "notes": "Demande email",
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("public_reservation_success"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Nouvelle demande de réservation", mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].to, ["agency@test.com"])
+
+    def test_status_change_sends_email_to_client(self):
+        reservation = Reservation.objects.create(
+            agency=self.agency,
+            panel_face=self.face_a,
+            client=self.client_obj,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.PENDING,
+            start_date=date(2026, 10, 1),
+            end_date=date(2026, 10, 30),
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=self.manager,
+        )
+
+        self.client.login(username="manager_email", password="testpass123")
+
+
+        mail.outbox.clear()
+        self.client.post(
+            reverse("reservation_change_status", args=[reservation.id, "approved"]),
+            follow=True,
+        )
+
+        self.assertGreaterEqual(len(mail.outbox), 1)
+
+        matching_emails = [
+            email for email in mail.outbox
+            if "Mise à jour de votre réservation" in email.subject
+               and email.to == ["client-email@test.com"]
+        ]
+
+        self.assertEqual(len(matching_emails), 1)
+
+    def test_no_internal_email_sent_if_agency_email_missing(self):
+        self.agency.email = ""
+        self.agency.save()
+
+        response = self.client.post(
+            reverse("public_reservation_request_for_panel", args=[self.panel.id]),
+            {
+                "company_name": "Entreprise Sans Email",
+                "contact_name": "Jean Sans Email",
+                "phone": "70333333",
+                "email": "client2@test.com",
+                "business_sector": "Commerce",
+                "panel_face": self.face_a.id,
+                "start_date": "2026-11-01",
+                "duration_months": "1",
+                "notes": "Aucun email agence",
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("public_reservation_success"))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_client_email_sent_if_client_email_missing(self):
+        self.client_obj.email = ""
+        self.client_obj.save()
+
+        reservation = Reservation.objects.create(
+            agency=self.agency,
+            panel_face=self.face_a,
+            client=self.client_obj,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.PENDING,
+            start_date=date(2026, 12, 1),
+            end_date=date(2026, 12, 30),
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=self.manager,
+        )
+
+        self.client.login(username="manager_email", password="testpass123")
+
+        self.client.post(
+            reverse("reservation_change_status", args=[reservation.id, "approved"]),
+            follow=True,
+        )
+
+        self.assertEqual(len(mail.outbox), 0)
+
+class ReservationBackofficeWorkflowTests(TestCase):
+    def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.bobo = City.objects.create(
+            country_code="BF",
+            name="Bobo-Dioulasso",
+            slug="bobo-dioulasso",
+        )
+
+        self.agency_a = Agency.objects.create(
+            name="Agence A",
+            slug="agence-a-wf",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.ouaga,
+        )
+        self.agency_b = Agency.objects.create(
+            name="Agence B",
+            slug="agence-b-wf",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.bobo,
+        )
+
+        self.super_admin = User.objects.create_user(
+            username="superadmin_wf",
+            password="testpass123",
+            role=User.Role.SUPER_ADMIN,
+            agency=self.agency_a,
+        )
+        self.manager_a = User.objects.create_user(
+            username="manager_a_wf",
+            password="testpass123",
+            role=User.Role.AGENCY_MANAGER,
+            agency=self.agency_a,
+        )
+        self.manager_b = User.objects.create_user(
+            username="manager_b_wf",
+            password="testpass123",
+            role=User.Role.AGENCY_MANAGER,
+            agency=self.agency_b,
+        )
+
+        self.panel_a = Panel.objects.create(
+            agency=self.agency_a,
+            reference="WF-PANEL-A",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.ouaga,
+            is_published=True,
+        )
+        self.panel_b = Panel.objects.create(
+            agency=self.agency_b,
+            reference="WF-PANEL-B",
+            format_category=Panel.FormatCategory.LARGE,
+            width_m=Decimal("6.00"),
+            height_m=Decimal("4.00"),
+            country="BF",
+            city="Bobo-Dioulasso",
+            city_ref=self.bobo,
+            is_published=True,
+        )
+
+        self.face_a = PanelFace.objects.create(
+            panel=self.panel_a,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+        self.face_b = PanelFace.objects.create(
+            panel=self.panel_b,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("150000.00"),
+        )
+
+        self.client_obj = Client.objects.create(
+            company_name="Client Workflow",
+            contact_name="Contact Workflow",
+            phone="70000010",
+            email="workflow@test.com",
+        )
+
+        self.reservation = Reservation.objects.create(
+            agency=self.agency_a,
+            panel_face=self.face_a,
+            client=self.client_obj,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.PENDING,
+            start_date=date(2026, 10, 1),
+            end_date=date(2026, 10, 30),
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=None,
+            notes="Demande workflow",
+        )
+
+    def test_super_admin_can_view_reservation_detail(self):
+        self.client.login(username="superadmin_wf", password="testpass123")
+
+        response = self.client.get(reverse("reservation_detail", args=[self.reservation.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Demande workflow")
+        self.assertContains(response, "Client Workflow")
+
+    def test_agency_user_can_view_own_reservation_detail(self):
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        response = self.client.get(reverse("reservation_detail", args=[self.reservation.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "WF-PANEL-A")
+
+    def test_agency_user_cannot_view_other_agency_reservation_detail(self):
+        self.client.login(username="manager_b_wf", password="testpass123")
+
+        response = self.client.get(reverse("reservation_detail", args=[self.reservation.id]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_agency_user_can_update_own_reservation(self):
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        response = self.client.post(
+            reverse("reservation_update", args=[self.reservation.id]),
+            {
+                "panel_face": self.face_a.id,
+                "client": self.client_obj.id,
+                "start_date": "2026-11-01",
+                "duration_months": "2",
+                "monthly_price": "100000.00",
+                "total_price": "200000.00",
+                "need_design_help": "on",
+                "notes": "Mise à jour workflow",
+            },
+        )
+
+        self.reservation.refresh_from_db()
+        self.assertRedirects(response, reverse("reservation_detail", args=[self.reservation.id]))
+        self.assertEqual(self.reservation.start_date.isoformat(), "2026-11-01")
+        self.assertEqual(self.reservation.end_date.isoformat(), "2026-12-30")
+        self.assertEqual(self.reservation.total_price, Decimal("200000.00"))
+        self.assertEqual(self.reservation.notes, "Mise à jour workflow")
+
+    def test_active_reservation_cannot_be_opened_for_update(self):
+        self.reservation.status = Reservation.Status.ACTIVE
+        self.reservation.save()
+
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        response = self.client.get(
+            reverse("reservation_update", args=[self.reservation.id]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("reservation_detail", args=[self.reservation.id]))
+        self.assertContains(response, "Cette réservation ne peut plus être modifiée")
+
+    def test_completed_reservation_cannot_be_opened_for_update(self):
+        self.reservation.status = Reservation.Status.COMPLETED
+        self.reservation.save()
+
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        response = self.client.get(
+            reverse("reservation_update", args=[self.reservation.id]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("reservation_detail", args=[self.reservation.id]))
+        self.assertContains(response, "Cette réservation ne peut plus être modifiée")
+
+    def test_agency_user_cannot_update_other_agency_reservation(self):
+        self.client.login(username="manager_b_wf", password="testpass123")
+
+        response = self.client.get(reverse("reservation_update", args=[self.reservation.id]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_pending_can_be_approved(self):
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        response = self.client.post(
+            reverse("reservation_change_status", args=[self.reservation.id, "approved"]),
+            follow=True,
+        )
+
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.APPROVED)
+        messages_list = [m.message for m in get_messages(response.wsgi_request)]
+        self.assertTrue(any("Approved" in msg or "Approuv" in msg for msg in messages_list))
+
+    def test_approved_can_be_activated(self):
+        self.reservation.status = Reservation.Status.APPROVED
+        self.reservation.save()
+
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        self.client.post(reverse("reservation_change_status", args=[self.reservation.id, "active"]))
+
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.ACTIVE)
+
+    def test_active_can_be_completed(self):
+        self.reservation.status = Reservation.Status.ACTIVE
+        self.reservation.save()
+
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        self.client.post(reverse("reservation_change_status", args=[self.reservation.id, "completed"]))
+
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.COMPLETED)
+
+    def test_invalid_transition_is_rejected(self):
+        self.reservation.status = Reservation.Status.PENDING
+        self.reservation.save()
+
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        self.client.post(reverse("reservation_change_status", args=[self.reservation.id, "completed"]))
+
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.PENDING)
+
+    def test_reservation_list_can_filter_by_status(self):
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        response = self.client.get(reverse("reservation_list"), {"status": Reservation.Status.PENDING})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "WF-PANEL-A")
+
+    def test_status_change_creates_log(self):
+        self.client.login(username="manager_a_wf", password="testpass123")
+
+        self.client.post(
+            reverse("reservation_change_status", args=[self.reservation.id, "approved"])
+        )
+
+        from apps.reservations.models import ReservationStatusLog
+
+        log = ReservationStatusLog.objects.get(reservation=self.reservation)
+
+        self.assertEqual(log.old_status, Reservation.Status.PENDING)
+        self.assertEqual(log.new_status, Reservation.Status.APPROVED)
+        self.assertEqual(log.changed_by.username, "manager_a_wf")
+
+class DashboardBusinessMetricsTests(TestCase):
+    def setUp(self):
+        self.ouaga = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+        self.bobo = City.objects.create(
+            country_code="BF",
+            name="Bobo-Dioulasso",
+            slug="bobo-dioulasso",
+        )
+
+        self.agency_a = Agency.objects.create(
+            name="Agence Dashboard A",
+            slug="agence-dashboard-a",
+            email="a@test.com",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.ouaga,
+        )
+        self.agency_b = Agency.objects.create(
+            name="Agence Dashboard B",
+            slug="agence-dashboard-b",
+            email="b@test.com",
+            status=Agency.Status.ACTIVE,
+            country="BF",
+            city_ref=self.bobo,
+        )
+
+        self.super_admin = User.objects.create_user(
+            username="super_dashboard",
+            password="testpass123",
+            role=User.Role.SUPER_ADMIN,
+            agency=self.agency_a,
+        )
+        self.manager_a = User.objects.create_user(
+            username="manager_dashboard_a",
+            password="testpass123",
+            role=User.Role.AGENCY_MANAGER,
+            agency=self.agency_a,
+        )
+
+        self.panel_a = Panel.objects.create(
+            agency=self.agency_a,
+            reference="DASH-PANEL-A",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.ouaga,
+            is_published=True,
+        )
+        self.panel_b = Panel.objects.create(
+            agency=self.agency_b,
+            reference="DASH-PANEL-B",
+            format_category=Panel.FormatCategory.LARGE,
+            width_m=Decimal("6.00"),
+            height_m=Decimal("4.00"),
+            country="BF",
+            city="Bobo-Dioulasso",
+            city_ref=self.bobo,
+            is_published=True,
+        )
+
+        self.face_a1 = PanelFace.objects.create(
+            panel=self.panel_a,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+        self.face_a2 = PanelFace.objects.create(
+            panel=self.panel_a,
+            code=PanelFace.FaceCode.B,
+            monthly_price=Decimal("120000.00"),
+        )
+        self.face_b1 = PanelFace.objects.create(
+            panel=self.panel_b,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("150000.00"),
+        )
+
+        self.client_1 = Client.objects.create(
+            company_name="Client A",
+            contact_name="Contact A",
+            phone="70010001",
+            email="a@test.com",
+        )
+        self.client_2 = Client.objects.create(
+            company_name="Client B",
+            contact_name="Contact B",
+            phone="70010002",
+            email="b@test.com",
+        )
+
+        today = date.today()
+
+        self.pending_reservation = Reservation.objects.create(
+            agency=self.agency_a,
+            panel_face=self.face_a1,
+            client=self.client_1,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.PENDING,
+            start_date=today,
+            end_date=today + timedelta(days=30),
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=self.manager_a,
+            notes="Pending reservation",
+        )
+
+        self.active_reservation = Reservation.objects.create(
+            agency=self.agency_a,
+            panel_face=self.face_a2,
+            client=self.client_2,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.ACTIVE,
+            start_date=today - timedelta(days=25),
+            end_date=today + timedelta(days=4),  # >= 30 jours
+            monthly_price=Decimal("120000.00"),
+            total_price=Decimal("120000.00"),
+            created_by=self.manager_a,
+            notes="Active reservation",
+        )
+
+        self.completed_reservation = Reservation.objects.create(
+            agency=self.agency_b,
+            panel_face=self.face_b1,
+            client=self.client_1,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.COMPLETED,
+            start_date=today - timedelta(days=40),
+            end_date=today - timedelta(days=10),
+            monthly_price=Decimal("150000.00"),
+            total_price=Decimal("150000.00"),
+            created_by=self.super_admin,
+            notes="Completed reservation",
+        )
+
+    def test_super_admin_dashboard_shows_global_metrics(self):
+        self.client.login(username="super_dashboard", password="testpass123")
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+
+        # Vérification métier via le context
+        self.assertEqual(response.context["panel_count"], 2)
+        self.assertEqual(response.context["reservation_count"], 3)
+        self.assertEqual(response.context["pending_count"], 1)
+        self.assertEqual(response.context["active_count"], 1)
+        self.assertEqual(response.context["completed_count"], 1)
+        self.assertEqual(response.context["total_faces_count"], 3)
+        self.assertEqual(response.context["occupied_faces_count"], 1)
+        self.assertEqual(response.context["available_faces_count"], 2)
+
+        self.assertEqual(str(response.context["total_revenue"]), "370000.00")
+        self.assertEqual(str(response.context["committed_revenue"]), "120000.00")
+        self.assertEqual(str(response.context["active_revenue"]), "120000.00")
+        self.assertEqual(str(response.context["completed_revenue"]), "150000.00")
+
+        # Vérifications minimales de rendu
+        self.assertContains(response, "Dashboard")
+        self.assertContains(response, "DASH-PANEL-A")
+        self.assertContains(response, "DASH-PANEL-B")
+
+    def test_agency_manager_dashboard_is_scoped_to_own_agency(self):
+        self.client.login(username="manager_dashboard_a", password="testpass123")
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+
+        # Vérification métier via le context
+        self.assertEqual(response.context["panel_count"], 1)
+        self.assertEqual(response.context["reservation_count"], 2)
+        self.assertEqual(response.context["pending_count"], 1)
+        self.assertEqual(response.context["active_count"], 1)
+        self.assertEqual(response.context["completed_count"], 0)
+        self.assertEqual(response.context["total_faces_count"], 2)
+        self.assertEqual(response.context["occupied_faces_count"], 1)
+        self.assertEqual(response.context["available_faces_count"], 1)
+
+        self.assertEqual(str(response.context["total_revenue"]), "220000.00")
+        self.assertEqual(str(response.context["committed_revenue"]), "120000.00")
+        self.assertEqual(str(response.context["active_revenue"]), "120000.00")
+        self.assertEqual(str(response.context["completed_revenue"]), "0.00")
+
+        # Vérifications minimales de rendu / scope
+        self.assertContains(response, "Dashboard")
+        self.assertContains(response, "DASH-PANEL-A")
+        self.assertNotContains(response, "DASH-PANEL-B")
+
+    def test_dashboard_shows_upcoming_endings(self):
+        self.client.login(username="manager_dashboard_a", password="testpass123")
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Réservations qui se terminent bientôt")
+        self.assertContains(response, "DASH-PANEL-A")
+        self.assertContains(response, "Client B - Contact B")
+        self.assertContains(response, f'/reservations/{self.active_reservation.id}/')
 
 
 class PanelCreateViewTests(TestCase):
@@ -929,6 +1632,9 @@ class ReservationCreateViewTests(TestCase):
     def test_super_admin_can_create_reservation_for_any_agency(self):
         self.client.login(username="superadmin2", password="testpass123")
 
+        future_start = timezone.localdate() + timedelta(days=7)
+        expected_end = future_start + timedelta(days=29)
+
         response = self.client.post(
             reverse("reservation_create"),
             {
@@ -937,7 +1643,7 @@ class ReservationCreateViewTests(TestCase):
                 "client": self.client_obj.id,
                 "source": Reservation.Source.PLATFORM,
                 "status": Reservation.Status.PENDING,
-                "start_date": "2026-04-01",
+                "start_date": future_start.isoformat(),
                 "duration_months": "1",
                 "monthly_price": "150000.00",
                 "total_price": "150000.00",
@@ -946,12 +1652,12 @@ class ReservationCreateViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("reservation_list"))
         reservation = Reservation.objects.get(notes="Réservation super admin")
+        self.assertRedirects(response, reverse("reservation_detail", args=[reservation.id]))
         self.assertEqual(reservation.agency, self.agency_b)
         self.assertEqual(reservation.panel_face, self.face_b1)
         self.assertEqual(reservation.created_by, self.super_admin)
-        self.assertEqual(reservation.end_date.isoformat(), "2026-04-30")
+        self.assertEqual(reservation.end_date, expected_end)
 
     def test_non_super_admin_is_forced_to_own_agency(self):
         self.client.login(username="manager", password="testpass123")
@@ -972,8 +1678,8 @@ class ReservationCreateViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("reservation_list"))
         reservation = Reservation.objects.get(notes="Réservation manager")
+        self.assertRedirects(response, reverse("reservation_detail", args=[reservation.id]))
         self.assertEqual(reservation.agency, self.agency_a)
         self.assertEqual(reservation.created_by, self.manager)
 

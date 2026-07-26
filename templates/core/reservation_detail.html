@@ -1,0 +1,530 @@
+{% extends "base_backoffice.html" %}
+{% load l10n %}
+
+{% block title %}Détail réservation - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Réservations{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Réservations / Détail #{{ reservation.id }}{% endblock %}
+{% block backoffice_content_title %}Réservation #{{ reservation.id }}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Consultez les informations complètes de la réservation et traitez son statut selon son avancement.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'reservation_list' %}">Retour à la liste</a>
+        {% if reservation.status == "pending" or reservation.status == "approved" %}
+            <a class="btn" href="{% url 'reservation_update' reservation.id %}">Modifier</a>
+        {% endif %}
+        {% if reservation.status == "pending" or reservation.status == "approved" or reservation.status == "active" or reservation.status == "completed" or reservation.status == "interrupted" %}
+            <a class="btn accent" href="{% url 'reservation_invoice_pdf' reservation.id %}">
+                {% if reservation.status == "pending" %}Télécharger le proforma{% else %}Télécharger la facture{% endif %}
+            </a>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="detail-page-layout">
+    <div class="info-stack">
+        <section class="info-card">
+            <h2>Informations générales</h2>
+            <div class="kv-grid">
+                <div class="kv-item">
+                    <span class="kv-label">Régie</span>
+                    <span class="kv-value">{{ reservation.agency.name }}</span>
+                    {% if reservation.status == "interrupted" %}
+                    <div class="kv-item">
+                        <span class="kv-label">Date d’interruption</span>
+                        <span class="kv-value">{{ reservation.interrupted_at }}</span>
+                    </div>
+                    <div class="kv-item">
+                        <span class="kv-label">Motif</span>
+                        <span class="kv-value">{{ reservation.get_interrupted_reason_display }}</span>
+                    </div>
+                    {% if reservation.interrupted_comment %}
+                        <div class="kv-item" style="grid-column: 1 / -1;">
+                            <span class="kv-label">Commentaire</span>
+                            <span class="kv-value">{{ reservation.interrupted_comment }}</span>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Statut</span>
+                    <span class="kv-value">
+                        <span class="status-badge status-{{ reservation.status }}">
+                            {{ reservation.get_status_display }}
+                        </span>
+                    </span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Source</span>
+                    <span class="kv-value">{{ reservation.get_source_display }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Créée le</span>
+                    <span class="kv-value">{{ reservation.created_at }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Date de début</span>
+                    <span class="kv-value">{{ reservation.start_date }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Date de fin</span>
+                    <span class="kv-value">{{ reservation.end_date }}</span>
+                </div>
+
+                {% if reservation.duration_months %}
+                    <div class="kv-item">
+                        <span class="kv-label">Durée</span>
+                        <span class="kv-value">{{ reservation.duration_months }} mois</span>
+                    </div>
+                {% endif %}
+
+                <div class="kv-item">
+                    <span class="kv-label">Aide design</span>
+                    <span class="kv-value">{{ reservation.need_design_help|yesno:"Oui,Non" }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="info-card">
+            <h2>Panneau et face réservée</h2>
+            <div class="kv-grid">
+                <div class="kv-item">
+                    <span class="kv-label">Panneau</span>
+                    <span class="kv-value">{{ reservation.panel_face.panel.reference }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Face</span>
+                    <span class="kv-value">Face {{ reservation.panel_face.code }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Orientation</span>
+                    <span class="kv-value">{{ reservation.panel_face.orientation|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Prix mensuel</span>
+                    <span class="kv-value">{{ reservation.panel_face.monthly_price }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Ville</span>
+                    <span class="kv-value">
+                        {{ reservation.panel_face.panel.geographic_unit.root.name }}
+                    </span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Quartier</span>
+                    <span class="kv-value">{{ reservation.panel_face.panel.geographic_unit.path_below_root|default:"—" }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="info-card">
+            <h2>Client</h2>
+            <div class="kv-grid">
+                <div class="kv-item">
+                    <span class="kv-label">Contact</span>
+                    <span class="kv-value">{{ reservation.client }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Entreprise</span>
+                    <span class="kv-value">{{ reservation.client.company_name|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Téléphone</span>
+                    <span class="kv-value">{{ reservation.client.phone|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Email</span>
+                    <span class="kv-value">{{ reservation.client.email|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Secteur d’activité</span>
+                    <span class="kv-value">{{ reservation.client.business_sector|default:"—" }}</span>
+                </div>
+            </div>
+        </section>
+
+        {% if reservation.notes %}
+            <section class="info-card">
+                <h2>Commentaire</h2>
+                <p style="margin-bottom: 0;">{{ reservation.notes }}</p>
+            </section>
+        {% endif %}
+        {% if reservation.is_definitive_invoice %}
+        <section class="info-card">
+            <div class="table-toolbar">
+                <h2 style="margin: 0;">Taxes et retenues</h2>
+                <button type="button" class="btn secondary" data-open-modal="tax-line-add-modal">Ajouter une ligne</button>
+            </div>
+
+            {% if reservation.tax_lines.all %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Libellé</th>
+                                <th>Type</th>
+                                <th>Calcul</th>
+                                <th>Montant</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in reservation.tax_lines.all %}
+                                <tr>
+                                    <td>{{ line.label }}</td>
+                                    <td>{{ line.get_line_type_display }}</td>
+                                    <td>
+                                        {% if line.computation_mode == "percentage" %}
+                                            {{ line.rate_percent }} %
+                                        {% else %}
+                                            {{ line.fixed_amount }} FCFA (fixe)
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ line.amount_display }} FCFA</td>
+                                    <td>
+                                        <div class="action-links">
+                                            <a href="#" data-open-modal="tax-line-edit-modal-{{ line.id }}">Modifier</a>
+                                            <form method="post" action="{% url 'reservation_tax_line_delete' reservation.id line.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn danger" style="padding: 4px 10px; font-size: 12px;">Supprimer</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="muted" style="margin-top: 10px; margin-bottom: 0;">
+                    Montant net estimé après ces lignes : <strong>{{ reservation.net_payable_amount }} FCFA</strong>
+                </p>
+            {% else %}
+                <p class="muted">Aucune taxe ou retenue ajoutée. La facture affichera le montant simple.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+    </div>
+
+    <aside class="info-card side-summary-card">
+        <p class="muted" style="margin-top: 0; margin-bottom: 6px;">Résumé rapide</p>
+        <h2 style="margin-top: 0;">Face {{ reservation.panel_face.code }}</h2>
+
+        {% if reservation.total_price %}
+            <div class="summary-price">{{ reservation.total_price }}</div>
+            <p class="muted" style="margin-top: 0;">Montant total estimé</p>
+        {% endif %}
+
+        <div class="summary-block">
+            <strong>Panneau</strong>
+            <div class="muted">{{ reservation.panel_face.panel.reference }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Client</strong>
+            <div class="muted">{{ reservation.client }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Période</strong>
+            <div class="muted">{{ reservation.start_date }} → {{ reservation.end_date }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Statut</strong>
+            <div style="margin-top: 8px;">
+                <span class="status-badge status-{{ reservation.status }}">
+                    {{ reservation.get_status_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="action-column">
+    {% if reservation.status == "pending" %}
+        <form method="post" action="{% url 'reservation_change_status' reservation.id 'approved' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn success" style="width: 100%;">Approuver</button>
+        </form>
+
+        <form method="post" action="{% url 'reservation_change_status' reservation.id 'rejected' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn danger" style="width: 100%;">Rejeter</button>
+        </form>
+    {% endif %}
+
+    {% if reservation.status == "approved" %}
+        <form method="post" action="{% url 'reservation_change_status' reservation.id 'active' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn success" style="width: 100%;">Activer</button>
+        </form>
+
+        <form method="post" action="{% url 'reservation_change_status' reservation.id 'cancelled' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn danger" style="width: 100%;">Annuler</button>
+        </form>
+    {% endif %}
+
+    {% if reservation.status == "active" %}
+        <form method="post" action="{% url 'reservation_change_status' reservation.id 'completed' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn warning" style="width: 100%;">Marquer terminée</button>
+        </form>
+
+        <button type="button" class="btn danger" style="width: 100%;" id="interrupt-open-btn">
+            Interrompre
+        </button>
+    {% endif %}
+
+    {% if reservation.status == "pending" %}
+        <a class="btn secondary" href="{% url 'reservation_update' reservation.id %}">
+            Modifier la réservation
+        </a>
+    {% endif %}
+</div>
+    </aside>
+</section>
+
+{% block extra_scripts %}
+{% if reservation.status == "active" %}
+    <div class="modal-overlay" id="interrupt-modal-overlay" hidden>
+        <div class="modal-box">
+            <h3 class="modal-title">Interrompre la réservation</h3>
+            <p class="muted" style="margin-top: 0;">
+                Cette action est définitive et libère la face pour de nouvelles réservations.
+            </p>
+
+            <form method="post" action="{% url 'reservation_interrupt' reservation.id %}">
+                {% csrf_token %}
+                <div class="form-field">
+                    <label for="id_interrupted_at">Date d’interruption</label>
+                    <input type="date" name="interrupted_at" id="id_interrupted_at" required>
+                </div>
+                <div class="form-field">
+                    <label for="id_interrupted_reason">Motif</label>
+                    <select name="interrupted_reason" id="id_interrupted_reason" required>
+                        <option value="">—</option>
+                        {% for value, label in reservation.InterruptionReason.choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="id_interrupted_comment">Commentaire</label>
+                    <textarea name="interrupted_comment" id="id_interrupted_comment" rows="3"></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn secondary" id="interrupt-cancel-btn">Annuler</button>
+                    <button type="submit" class="btn danger">Confirmer l’interruption</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const openBtn = document.getElementById("interrupt-open-btn");
+        const cancelBtn = document.getElementById("interrupt-cancel-btn");
+        const overlay = document.getElementById("interrupt-modal-overlay");
+        const dateField = document.getElementById("id_interrupted_at");
+
+        function openModal() {
+            overlay.hidden = false;
+            if (dateField && !dateField.value) {
+                dateField.value = new Date().toISOString().split("T")[0];
+            }
+        }
+
+        function closeModal() {
+            overlay.hidden = true;
+        }
+
+        if (openBtn) {
+            openBtn.addEventListener("click", openModal);
+        }
+        if (cancelBtn) {
+            cancelBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                closeModal();
+            });
+        }
+        if (overlay) {
+            overlay.addEventListener("click", function (e) {
+                if (e.target === overlay) {
+                    closeModal();
+                }
+            });
+        }
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && overlay && !overlay.hidden) {
+                closeModal();
+            }
+        });
+    });
+    </script>
+{% endif %}
+{% if reservation.is_definitive_invoice %}
+    <div class="modal-overlay" id="tax-line-add-modal" hidden>
+        <div class="modal-box">
+            <h3 class="modal-title">Ajouter une ligne de taxe/retenue</h3>
+            <p class="muted" style="margin-top: 0;">
+                Le taux ou montant exact relève de votre comptabilité — la plateforme se contente de l’afficher et de calculer l’arithmétique.
+            </p>
+
+            <form method="post" action="{% url 'reservation_tax_line_create' reservation.id %}">
+                {% csrf_token %}
+                <div class="form-field">
+                    <label for="id_tax_label_add">Libellé</label>
+                    <input type="text" name="label" id="id_tax_label_add" placeholder="Ex : TVA, Retenue à la source..." required>
+                </div>
+                <div class="form-field">
+                    <label for="id_tax_type_add">Type</label>
+                    <select name="line_type" id="id_tax_type_add" required>
+                        <option value="addition">Ajout (taxe facturée en plus)</option>
+                        <option value="deduction">Retenue (déduite du net à percevoir)</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="id_tax_mode_add">Mode de calcul</label>
+                    <select
+                        name="computation_mode"
+                        id="id_tax_mode_add"
+                        class="tax-mode-select"
+                        data-rate-target="tax-rate-field-add"
+                        data-fixed-target="tax-fixed-field-add"
+                        required
+                    >
+                        <option value="percentage">Pourcentage du montant</option>
+                        <option value="fixed">Montant fixe</option>
+                    </select>
+                </div>
+                <div class="form-field" id="tax-rate-field-add">
+                    <label for="id_tax_rate_add">Taux (%)</label>
+                    <input type="number" name="rate_percent" id="id_tax_rate_add" step="0.01">
+                </div>
+                <div class="form-field" id="tax-fixed-field-add" hidden>
+                    <label for="id_tax_fixed_add">Montant fixe (FCFA)</label>
+                    <input type="number" name="fixed_amount" id="id_tax_fixed_add" step="0.01">
+                </div>
+                <input type="hidden" name="order" value="0">
+
+                <div class="modal-actions">
+                    <button type="button" class="btn secondary modal-cancel-btn">Annuler</button>
+                    <button type="submit" class="btn accent">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% for line in reservation.tax_lines.all %}
+        <div class="modal-overlay" id="tax-line-edit-modal-{{ line.id }}" hidden>
+            <div class="modal-box">
+                <h3 class="modal-title">Modifier la ligne « {{ line.label }} »</h3>
+
+                <form method="post" action="{% url 'reservation_tax_line_update' reservation.id line.id %}">
+                    {% csrf_token %}
+                    <div class="form-field">
+                        <label for="id_tax_label_{{ line.id }}">Libellé</label>
+                        <input type="text" name="label" id="id_tax_label_{{ line.id }}" value="{{ line.label }}" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="id_tax_type_{{ line.id }}">Type</label>
+                        <select name="line_type" id="id_tax_type_{{ line.id }}" required>
+                            <option value="addition" {% if line.line_type == "addition" %}selected{% endif %}>Ajout (taxe facturée en plus)</option>
+                            <option value="deduction" {% if line.line_type == "deduction" %}selected{% endif %}>Retenue (déduite du net à percevoir)</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="id_tax_mode_{{ line.id }}">Mode de calcul</label>
+                        <select
+                            name="computation_mode"
+                            id="id_tax_mode_{{ line.id }}"
+                            class="tax-mode-select"
+                            data-rate-target="tax-rate-field-{{ line.id }}"
+                            data-fixed-target="tax-fixed-field-{{ line.id }}"
+                            required
+                        >
+                            <option value="percentage" {% if line.computation_mode == "percentage" %}selected{% endif %}>Pourcentage du montant</option>
+                            <option value="fixed" {% if line.computation_mode == "fixed" %}selected{% endif %}>Montant fixe</option>
+                        </select>
+                    </div>
+                    <div class="form-field" id="tax-rate-field-{{ line.id }}" {% if line.computation_mode != "percentage" %}hidden{% endif %}>
+                        <label for="id_tax_rate_{{ line.id }}">Taux (%)</label>
+                        <input type="number" name="rate_percent" id="id_tax_rate_{{ line.id }}" step="0.01" value="{{ line.rate_percent|unlocalize|default_if_none:'' }}">
+                    </div>
+                    <div class="form-field" id="tax-fixed-field-{{ line.id }}" {% if line.computation_mode != "fixed" %}hidden{% endif %}>
+                        <label for="id_tax_fixed_{{ line.id }}">Montant fixe (FCFA)</label>
+                        <input type="number" name="fixed_amount" id="id_tax_fixed_{{ line.id }}" step="0.01" value="{{ line.fixed_amount|unlocalize|default_if_none:'' }}">
+                    </div>
+                    <input type="hidden" name="order" value="{{ line.order }}">
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn secondary modal-cancel-btn">Annuler</button>
+                        <button type="submit" class="btn accent">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("[data-open-modal]").forEach(function (trigger) {
+            trigger.addEventListener("click", function (e) {
+                e.preventDefault();
+                const target = document.getElementById(trigger.dataset.openModal);
+                if (target) target.hidden = false;
+            });
+        });
+
+        document.querySelectorAll(".modal-cancel-btn").forEach(function (btn) {
+            btn.addEventListener("click", function (e) {
+                e.preventDefault();
+                const overlay = btn.closest(".modal-overlay");
+                if (overlay) overlay.hidden = true;
+            });
+        });
+
+        document.querySelectorAll(".modal-overlay").forEach(function (overlay) {
+            overlay.addEventListener("click", function (e) {
+                if (e.target === overlay) overlay.hidden = true;
+            });
+        });
+
+        document.querySelectorAll(".tax-mode-select").forEach(function (select) {
+            const rateField = document.getElementById(select.dataset.rateTarget);
+            const fixedField = document.getElementById(select.dataset.fixedTarget);
+
+            function sync() {
+                const isPercentage = select.value === "percentage";
+                if (rateField) rateField.hidden = !isPercentage;
+                if (fixedField) fixedField.hidden = isPercentage;
+            }
+
+            select.addEventListener("change", sync);
+        });
+    });
+    </script>
+{% endif %}
+{% endblock %}
+
+{% endblock %}

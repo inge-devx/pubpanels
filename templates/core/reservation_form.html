@@ -1,218 +1,370 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Créer une réservation - PubPanels</title>
-</head>
-<body>
-    <h1>Créer une réservation</h1>
+{% extends "base_backoffice.html" %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
+{% block title %}{% if page_title %}{{ page_title }}{% else %}Créer une réservation{% endif %} - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Réservations{% endblock %}
+{% block backoffice_breadcrumb %}
+    Backoffice / Réservations / {% if reservation %}Modification{% else %}Création{% endif %}
+{% endblock %}
+{% block backoffice_content_title %}
+    {% if page_title %}{{ page_title }}{% else %}Créer une réservation{% endif %}
+{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Renseignez les informations du client, sélectionnez une face disponible et vérifiez les montants avant validation.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'reservation_list' %}">Retour à la liste</a>
+        {% if reservation %}
+            <a class="btn" href="{% url 'reservation_detail' reservation.id %}">Voir le détail</a>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="panel-form-layout">
+    <div class="form-sections">
+        <section class="form-card">
+            <h2 class="form-section-title">Réservation</h2>
+
+            {% if form.non_field_errors %}
+                <ul class="form-error-list">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post" id="reservation-form">
+                {% csrf_token %}
+
+                {% if form.end_date %}
+                    <div style="display: none;">
+                        {{ form.end_date }}
+                    </div>
+                {% endif %}
+
+                <h3 class="form-section-title" style="margin-top: 0;">Contexte</h3>
+                <div class="form-field-grid">
+                    {% if form.agency %}
+                        <div class="form-field">
+                            <label for="{{ form.agency.id_for_label }}">{{ form.agency.label }}</label>
+                            {{ form.agency }}
+                            {% if form.agency.help_text %}
+                                <div class="field-help">{{ form.agency.help_text }}</div>
+                            {% endif %}
+                            {% if form.agency.errors %}
+                                <div class="field-error">{{ form.agency.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if form.source %}
+                        <div class="form-field">
+                            <label for="{{ form.source.id_for_label }}">{{ form.source.label }}</label>
+                            {{ form.source }}
+                            {% if form.source.help_text %}
+                                <div class="field-help">{{ form.source.help_text }}</div>
+                            {% endif %}
+                            {% if form.source.errors %}
+                                <div class="field-error">{{ form.source.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if form.status %}
+                        <div class="form-field">
+                            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                            {{ form.status }}
+                            {% if form.status.help_text %}
+                                <div class="field-help">{{ form.status.help_text }}</div>
+                            {% endif %}
+                            {% if form.status.errors %}
+                                <div class="field-error">{{ form.status.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <h3 class="form-section-title" style="margin-top: 22px;">Client</h3>
+                <div class="form-field-grid">
+                    <div class="form-field form-field-wide">
+                        <a
+                            class="btn secondary"
+                            href="{% url 'client_create' %}?next={% url 'reservation_create' %}"
+                            style="width: fit-content;"
+                        >
+                            + Créer un nouveau client
+                        </a>
+                    </div>
+
+                    {% if form.client %}
+                        <div class="form-field form-field-wide">
+                            <label for="{{ form.client.id_for_label }}">Choisir un client existant</label>
+                            {{ form.client }}
+                            {% if form.client.help_text %}
+                                <div class="field-help">{{ form.client.help_text }}</div>
+                            {% endif %}
+                            {% if form.client.errors %}
+                                <div class="field-error">{{ form.client.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <h3 class="form-section-title" style="margin-top: 22px;">Face et période</h3>
+                <div class="form-field-grid">
+                    {% if form.panel_face %}
+                        <div class="form-field form-field-wide">
+                            <label for="{{ form.panel_face.id_for_label }}">{{ form.panel_face.label }}</label>
+                            {{ form.panel_face }}
+                            {% if form.panel_face.help_text %}
+                                <div class="field-help">{{ form.panel_face.help_text }}</div>
+                            {% endif %}
+                            {% if form.panel_face.errors %}
+                                <div class="field-error">{{ form.panel_face.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if form.start_date %}
+                        <div class="form-field">
+                            <label for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}</label>
+                            {{ form.start_date }}
+                            {% if form.start_date.help_text %}
+                                <div class="field-help">{{ form.start_date.help_text }}</div>
+                            {% endif %}
+                            {% if form.start_date.errors %}
+                                <div class="field-error">{{ form.start_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if form.duration_months %}
+                        <div class="form-field">
+                            <label for="{{ form.duration_months.id_for_label }}">{{ form.duration_months.label }}</label>
+                            {{ form.duration_months }}
+                            {% if form.duration_months.help_text %}
+                                <div class="field-help">{{ form.duration_months.help_text }}</div>
+                            {% else %}
+                                <div class="field-help">1 mois commercial = 30 jours.</div>
+                            {% endif %}
+                            {% if form.duration_months.errors %}
+                                <div class="field-error">{{ form.duration_months.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <h3 class="form-section-title" style="margin-top: 22px;">Montants</h3>
+                <div class="form-field-grid">
+                    {% if form.monthly_price %}
+                        <div class="form-field">
+                            <label for="{{ form.monthly_price.id_for_label }}">{{ form.monthly_price.label }}</label>
+                            {{ form.monthly_price }}
+                            {% if form.monthly_price.help_text %}
+                                <div class="field-help">{{ form.monthly_price.help_text }}</div>
+                            {% endif %}
+                            {% if form.monthly_price.errors %}
+                                <div class="field-error">{{ form.monthly_price.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if form.total_price %}
+                        <div class="form-field">
+                            <label for="{{ form.total_price.id_for_label }}">{{ form.total_price.label }}</label>
+                            {{ form.total_price }}
+                            {% if form.total_price.help_text %}
+                                <div class="field-help">{{ form.total_price.help_text }}</div>
+                            {% endif %}
+                            {% if form.total_price.errors %}
+                                <div class="field-error">{{ form.total_price.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if form.notes %}
+                    <h3 class="form-section-title" style="margin-top: 22px;">Notes</h3>
+                    <div class="form-field-grid">
+                        <div class="form-field form-field-wide">
+                            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                            {{ form.notes }}
+                            {% if form.notes.help_text %}
+                                <div class="field-help">{{ form.notes.help_text }}</div>
+                            {% endif %}
+                            {% if form.notes.errors %}
+                                <div class="field-error">{{ form.notes.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="actions-row" style="margin-top: 18px;">
+                    <button type="submit" class="btn accent">
+                        {% if submit_label %}{{ submit_label }}{% else %}Créer{% endif %}
+                    </button>
+
+                    {% if reservation %}
+                        <a class="btn secondary" href="{% url 'reservation_detail' reservation.id %}">Annuler</a>
+                    {% else %}
+                        <a class="btn secondary" href="{% url 'reservation_list' %}">Annuler</a>
+                    {% endif %}
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <aside class="form-side-card">
+        <h2 class="form-section-title">Aide</h2>
+
+        <div class="side-note">
+            La liste des faces se met à jour selon l’régie, la date de début et la durée choisie.
+        </div>
+
+        <ul class="detail-list">
+            <li>
+                <strong>Régie</strong>
+                La face proposée dépend de l’régie sélectionnée.
+            </li>
+            <li>
+                <strong>Période</strong>
+                La disponibilité est recalculée à partir de la date de début et de la durée.
+            </li>
+            <li>
+                <strong>Montants</strong>
+                Le total est recalculé automatiquement à partir du prix mensuel et du nombre de mois.
+            </li>
         </ul>
-    {% endif %}
 
-    {% if form.non_field_errors %}
-        <ul>
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+        {% if reservation %}
+            <h2 class="form-section-title" style="margin-top: 22px;">Réservation en cours</h2>
+            <ul class="detail-list">
+                <li><strong>Référence</strong> #{{ reservation.id }}</li>
+                <li><strong>Statut</strong> {{ reservation.get_status_display }}</li>
+                <li><strong>Début</strong> {{ reservation.start_date }}</li>
+                <li><strong>Fin</strong> {{ reservation.end_date }}</li>
+            </ul>
+        {% endif %}
+    </aside>
+</section>
+{% endblock %}
 
-    <p><a href="{% url 'reservation_list' %}">Retour à la liste des réservations</a></p>
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const agencyField = document.getElementById("id_agency");
+    const panelFaceField = document.getElementById("id_panel_face");
+    const startDateField = document.getElementById("id_start_date");
+    const durationMonthsField = document.getElementById("id_duration_months");
+    const monthlyPriceField = document.getElementById("id_monthly_price");
+    const totalPriceField = document.getElementById("id_total_price");
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.end_date }}
+    if (!panelFaceField || !startDateField || !durationMonthsField || !monthlyPriceField || !totalPriceField) {
+        return;
+    }
 
-        <p>
-            {{ form.agency.label_tag }}<br>
-            {{ form.agency }}
-            {% if form.agency.errors %}
-                <br>{{ form.agency.errors }}
-            {% endif %}
-        </p>
+    function recalculateTotal() {
+        const monthly = parseFloat(monthlyPriceField.value || "0");
+        const months = parseInt(durationMonthsField.value || "0", 10);
 
-        <p>
-            {{ form.start_date.label_tag }}<br>
-            {{ form.start_date }}
-            {% if form.start_date.errors %}
-                <br>{{ form.start_date.errors }}
-            {% endif %}
-        </p>
+        if (!Number.isNaN(monthly) && !Number.isNaN(months) && monthly > 0 && months > 0) {
+            totalPriceField.value = (monthly * months).toFixed(2);
+        } else {
+            totalPriceField.value = "";
+        }
+    }
 
-        <p>
-            {{ form.duration_months.label_tag }}<br>
-            {{ form.duration_months }}
-            <br><small>{{ form.duration_months.help_text }}</small>
-            {% if form.duration_months.errors %}
-                <br>{{ form.duration_months.errors }}
-            {% endif %}
-        </p>
+    function loadPanelFaces(selectedFaceId = "") {
+        if (!agencyField || !agencyField.value) {
+            panelFaceField.innerHTML = '<option value="">---------</option>';
+            monthlyPriceField.value = "";
+            recalculateTotal();
+            return;
+        }
 
-        <p>
-            <strong>Date de fin calculée automatiquement :</strong>
-            <span id="computed-end-date">—</span>
-        </p>
-
-        <p>
-            {{ form.panel_face.label_tag }}<br>
-            {{ form.panel_face }}
-            {% if form.panel_face.errors %}
-                <br>{{ form.panel_face.errors }}
-            {% endif %}
-        </p>
-
-        <p>
-            {{ form.client.label_tag }}<br>
-            {{ form.client }}
-            {% if form.client.errors %}
-                <br>{{ form.client.errors }}
-            {% endif %}
-        </p>
-
-        <p>
-            {{ form.source.label_tag }}<br>
-            {{ form.source }}
-            {% if form.source.errors %}
-                <br>{{ form.source.errors }}
-            {% endif %}
-        </p>
-
-        <p>
-            {{ form.status.label_tag }}<br>
-            {{ form.status }}
-            {% if form.status.errors %}
-                <br>{{ form.status.errors }}
-            {% endif %}
-        </p>
-
-        <p>
-            {{ form.monthly_price.label_tag }}<br>
-            {{ form.monthly_price }}
-            {% if form.monthly_price.errors %}
-                <br>{{ form.monthly_price.errors }}
-            {% endif %}
-        </p>
-
-        <p>
-            {{ form.total_price.label_tag }}<br>
-            {{ form.total_price }}
-            {% if form.total_price.errors %}
-                <br>{{ form.total_price.errors }}
-            {% endif %}
-        </p>
-
-        <p>
-            {{ form.need_design_help.label_tag }}
-            {{ form.need_design_help }}
-            {% if form.need_design_help.errors %}
-                <br>{{ form.need_design_help.errors }}
-            {% endif %}
-        </p>
-
-        <p>
-            {{ form.notes.label_tag }}<br>
-            {{ form.notes }}
-            {% if form.notes.errors %}
-                <br>{{ form.notes.errors }}
-            {% endif %}
-        </p>
-
-        <button type="submit">Créer</button>
-    </form>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const agencyField = document.getElementById("id_agency");
-            const startDateField = document.getElementById("id_start_date");
-            const durationField = document.getElementById("id_duration_months");
-            const panelFaceField = document.getElementById("id_panel_face");
-            const monthlyPriceField = document.getElementById("id_monthly_price");
-            const endDateField = document.getElementById("id_end_date");
-            const endDatePreview = document.getElementById("computed-end-date");
-
-            let facePrices = {};
-
-            function clearFaces() {
-                panelFaceField.innerHTML = '<option value="">---------</option>';
-                facePrices = {};
-            }
-
-            function updateComputedEndDate(value) {
-                endDateField.value = value || "";
-                endDatePreview.textContent = value || "—";
-            }
-
-            function updateMonthlyPriceFromFace() {
-                const selectedFaceId = panelFaceField.value;
-                if (selectedFaceId && facePrices[selectedFaceId]) {
-                    monthlyPriceField.value = facePrices[selectedFaceId];
-                }
-            }
-
-            function loadFaces() {
-                const agencyId = agencyField.value;
-                const startDate = startDateField.value;
-                const durationMonths = durationField.value;
-                const selectedFaceId = panelFaceField.value;
-
-                if (!agencyId) {
-                    clearFaces();
-                    updateComputedEndDate("");
-                    return;
-                }
-
-                const params = new URLSearchParams();
-                params.append("agency_id", agencyId);
-
-                if (startDate) {
-                    params.append("start_date", startDate);
-                }
-
-                if (durationMonths) {
-                    params.append("duration_months", durationMonths);
-                }
-
-                fetch(`/api/panel-faces/?${params.toString()}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        clearFaces();
-
-                        data.faces.forEach(face => {
-                            const option = document.createElement("option");
-                            option.value = face.id;
-                            option.textContent = face.label;
-                            if (String(face.id) === String(selectedFaceId)) {
-                                option.selected = true;
-                            }
-                            panelFaceField.appendChild(option);
-                            facePrices[String(face.id)] = face.monthly_price;
-                        });
-
-                        updateComputedEndDate(data.computed_end_date);
-
-                        if (panelFaceField.value && facePrices[panelFaceField.value]) {
-                            monthlyPriceField.value = facePrices[panelFaceField.value];
-                        }
-                    })
-                    .catch(() => {
-                        clearFaces();
-                        updateComputedEndDate("");
-                    });
-            }
-
-            agencyField.addEventListener("change", loadFaces);
-            startDateField.addEventListener("change", loadFaces);
-            durationField.addEventListener("input", loadFaces);
-            panelFaceField.addEventListener("change", updateMonthlyPriceFromFace);
-
-            loadFaces();
+        const params = new URLSearchParams({
+            agency_id: agencyField.value,
         });
-    </script>
-</body>
-</html>
+
+        if (startDateField.value) {
+            params.append("start_date", startDateField.value);
+        }
+
+        if (durationMonthsField.value) {
+            params.append("duration_months", durationMonthsField.value);
+        }
+
+        fetch(`/api/panel-faces/?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                panelFaceField.innerHTML = '<option value="">---------</option>';
+
+                data.faces.forEach(face => {
+                    const option = document.createElement("option");
+                    option.value = face.id;
+                    option.textContent = face.label;
+                    option.dataset.monthlyPrice = face.monthly_price;
+
+                    if (String(face.id) === String(selectedFaceId)) {
+                        option.selected = true;
+                    }
+
+                    panelFaceField.appendChild(option);
+                });
+
+                if (selectedFaceId) {
+                    panelFaceField.value = String(selectedFaceId);
+                }
+
+                updateMonthlyPriceFromSelectedFace();
+            });
+    }
+
+    function updateMonthlyPriceFromSelectedFace() {
+        const selectedOption = panelFaceField.options[panelFaceField.selectedIndex];
+        if (selectedOption && selectedOption.dataset.monthlyPrice) {
+            monthlyPriceField.value = selectedOption.dataset.monthlyPrice;
+        } else if (!panelFaceField.value) {
+            monthlyPriceField.value = "";
+        }
+
+        recalculateTotal();
+    }
+
+    if (agencyField) {
+        agencyField.addEventListener("change", function () {
+            loadPanelFaces("");
+        });
+    }
+
+    panelFaceField.addEventListener("change", updateMonthlyPriceFromSelectedFace);
+
+    durationMonthsField.addEventListener("input", function () {
+        recalculateTotal();
+        if (agencyField && agencyField.value) {
+            loadPanelFaces(panelFaceField.value);
+        }
+    });
+
+    startDateField.addEventListener("change", function () {
+        if (agencyField && agencyField.value) {
+            loadPanelFaces(panelFaceField.value);
+        }
+    });
+
+    monthlyPriceField.addEventListener("input", recalculateTotal);
+
+    const initialFaceId = panelFaceField.value;
+    if (agencyField && agencyField.value) {
+        loadPanelFaces(initialFaceId);
+    } else {
+        updateMonthlyPriceFromSelectedFace();
+    }
+});
+</script>
+{% endblock %}

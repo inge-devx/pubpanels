@@ -4,10 +4,10 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from apps.agencies.models import Agency
 from apps.locations.models import City
 from apps.panels.models import Panel, PanelFace
 from apps.reservations.models import Client, Reservation
+from apps.agencies.models import Agency
 from apps.users.models import User
 
 
@@ -158,3 +158,147 @@ class ReservationModelTests(TestCase):
 
         with self.assertRaises(ValidationError):
             reservation.full_clean()
+
+from io import StringIO
+
+from django.core.management import call_command
+from django.utils import timezone
+
+from apps.reservations.models import ReservationStatusLog
+
+
+class ReservationStatusSyncCommandTests(TestCase):
+    def setUp(self):
+        self.city = City.objects.create(
+            country_code="BF",
+            name="Ouagadougou",
+            slug="ouagadougou",
+        )
+
+        self.agency = Agency.objects.create(
+            name="Agence Sync",
+            slug="agence-sync",
+            email="sync@test.com",
+            country="BF",
+            city_ref=self.city,
+        )
+
+        self.user = User.objects.create_user(
+            username="manager_sync",
+            password="testpass123",
+            role=User.Role.AGENCY_MANAGER,
+            agency=self.agency,
+        )
+
+        self.panel = Panel.objects.create(
+            agency=self.agency,
+            reference="PANEL-SYNC-001",
+            format_category=Panel.FormatCategory.STANDARD,
+            width_m=Decimal("4.00"),
+            height_m=Decimal("3.00"),
+            country="BF",
+            city="Ouagadougou",
+            city_ref=self.city,
+        )
+
+        self.face_a = PanelFace.objects.create(
+            panel=self.panel,
+            code=PanelFace.FaceCode.A,
+            monthly_price=Decimal("100000.00"),
+        )
+
+        self.client_obj = Client.objects.create(
+            company_name="Client Sync",
+            contact_name="Sync Client",
+            phone="70111111",
+            email="sync-client@test.com",
+        )
+
+    def test_command_completes_expired_active_reservations(self):
+        today = timezone.localdate()
+
+        start_date = today - timezone.timedelta(days=40)
+        end_date = today - timezone.timedelta(days=5)  # expirée
+
+        reservation = Reservation.objects.create(
+            agency=self.agency,
+            panel_face=self.face_a,
+            client=self.client_obj,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.ACTIVE,
+            start_date=start_date,
+            end_date=end_date,
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=self.user,
+        )
+
+        out = StringIO()
+        call_command("sync_reservation_statuses", stdout=out)
+
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.COMPLETED)
+
+        log = ReservationStatusLog.objects.get(reservation=reservation)
+        self.assertEqual(log.old_status, Reservation.Status.ACTIVE)
+        self.assertEqual(log.new_status, Reservation.Status.COMPLETED)
+        self.assertIsNone(log.changed_by)
+        self.assertIn("Synchronisation automatique", log.note)
+
+    def test_command_does_not_change_non_expired_active_reservations(self):
+        today = timezone.localdate()
+
+        start_date = today - timezone.timedelta(days=10)
+        end_date = today + timezone.timedelta(days=20)  # encore active
+
+        reservation = Reservation.objects.create(
+            agency=self.agency,
+            panel_face=self.face_a,
+            client=self.client_obj,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.ACTIVE,
+            start_date=start_date,
+            end_date=end_date,
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=self.user,
+        )
+
+        out = StringIO()
+        call_command("sync_reservation_statuses", stdout=out)
+
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+        self.assertEqual(
+            ReservationStatusLog.objects.filter(reservation=reservation).count(),
+            0,
+        )
+
+    def test_command_dry_run_does_not_modify_database(self):
+        today = timezone.localdate()
+
+        start_date = today - timezone.timedelta(days=40)
+        end_date = today - timezone.timedelta(days=5)
+
+        reservation = Reservation.objects.create(
+            agency=self.agency,
+            panel_face=self.face_a,
+            client=self.client_obj,
+            source=Reservation.Source.PLATFORM,
+            status=Reservation.Status.ACTIVE,
+            start_date=start_date,
+            end_date=end_date,
+            monthly_price=Decimal("100000.00"),
+            total_price=Decimal("100000.00"),
+            created_by=self.user,
+        )
+
+        out = StringIO()
+        call_command("sync_reservation_statuses", "--dry-run", stdout=out)
+
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.ACTIVE)
+        self.assertEqual(
+            ReservationStatusLog.objects.filter(reservation=reservation).count(),
+            0,
+        )

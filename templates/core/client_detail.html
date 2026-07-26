@@ -1,0 +1,140 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Détail client - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Clients{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Clients / {{ client_obj.contact_name }}{% endblock %}
+{% block backoffice_content_title %}{{ client_obj.contact_name }}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Consultez les informations du client, ses statistiques et son historique de réservation.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'client_list' %}">Retour à la liste</a>
+        <a class="btn" href="{% url 'client_update' client_obj.id %}">Modifier</a>
+        <a class="btn accent" href="{% url 'reservation_create' %}">Créer une réservation</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="detail-page-layout">
+    <div class="info-stack">
+        <section class="info-card">
+            <h2>Informations client</h2>
+
+            <div class="kv-grid">
+                <div class="kv-item">
+                    <span class="kv-label">Nom du contact</span>
+                    <span class="kv-value">{{ client_obj.contact_name }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Entreprise</span>
+                    <span class="kv-value">{{ client_obj.company_name|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Téléphone</span>
+                    <span class="kv-value">{{ client_obj.phone }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Email</span>
+                    <span class="kv-value">{{ client_obj.email|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Secteur d’activité</span>
+                    <span class="kv-value">{{ client_obj.business_sector|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Créé le</span>
+                    <span class="kv-value">{{ client_obj.created_at }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="info-card">
+            <div class="table-toolbar">
+                <h2 style="margin: 0;">Historique des réservations</h2>
+                <div class="table-count">{{ reservations|length }} réservation(s)</div>
+            </div>
+
+            {% if reservations %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Réf.</th>
+                                <th>Régie</th>
+                                <th>Panneau</th>
+                                <th>Face</th>
+                                <th>Statut</th>
+                                <th>Période</th>
+                                <th>Montant</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reservation in reservations %}
+                                <tr>
+                                    <td>#{{ reservation.id }}</td>
+                                    <td>{{ reservation.agency.name }}</td>
+                                    <td>{{ reservation.panel_face.panel.reference }}</td>
+                                    <td>{{ reservation.panel_face.code }}</td>
+                                    <td>
+                                        <span class="status-badge">
+                                            {{ reservation.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ reservation.start_date }} → {{ reservation.end_date }}</td>
+                                    <td>{{ reservation.total_price }}</td>
+                                    <td>
+                                        <a href="{% url 'reservation_detail' reservation.id %}">Voir</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="muted">Aucune réservation trouvée pour ce client.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <aside class="info-card side-summary-card">
+        <p class="muted" style="margin-top: 0; margin-bottom: 6px;">Résumé client</p>
+        <h2 style="margin-top: 0;">{{ client_obj.contact_name }}</h2>
+
+        <div class="summary-block">
+            <strong>Total réservations</strong>
+            <div class="muted">{{ stats.total }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Réservations actives</strong>
+            <div class="muted">{{ stats.active }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Réservations en attente</strong>
+            <div class="muted">{{ stats.pending }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Réservations terminées</strong>
+            <div class="muted">{{ stats.completed }}</div>
+        </div>
+
+        <div class="action-column">
+            <a class="btn" href="{% url 'client_update' client_obj.id %}">Modifier le client</a>
+            <a class="btn secondary" href="{% url 'client_list' %}">Retour à la liste</a>
+        </div>
+    </aside>
+</section>
+{% endblock %}

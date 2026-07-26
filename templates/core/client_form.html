@@ -1,0 +1,116 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}{{ page_title }} - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Clients{% endblock %}
+{% block backoffice_breadcrumb %}
+    Backoffice / Clients / {% if client_obj %}Modification{% else %}Création{% endif %}
+{% endblock %}
+{% block backoffice_content_title %}{{ page_title }}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Renseignez les informations d’identification et de contact du client.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'client_list' %}">Retour à la liste</a>
+        {% if client_obj %}
+            <a class="btn" href="{% url 'client_detail' client_obj.id %}">Voir le détail</a>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="panel-form-layout">
+    <div class="form-sections">
+        <section class="form-card">
+            <h2 class="form-section-title">Informations client</h2>
+
+            {% if form.non_field_errors %}
+                <ul class="form-error-list">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% if next_url %}
+                    <input type="hidden" name="next" value="{{ next_url }}">
+                {% endif %}
+
+                <div class="form-field-grid">
+                    <p>
+                        <label for="{{ form.contact_name.id_for_label }}">{{ form.contact_name.label }}</label>
+                        {{ form.contact_name }}
+                        {% if form.contact_name.errors %}
+                            <div class="field-error">{{ form.contact_name.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p>
+                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="field-error">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p>
+                        <label for="{{ form.company_name.id_for_label }}">{{ form.company_name.label }}</label>
+                        {{ form.company_name }}
+                        {% if form.company_name.errors %}
+                            <div class="field-error">{{ form.company_name.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p>
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="field-error">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+
+                    <p class="form-field-wide">
+                        <label for="{{ form.business_sector.id_for_label }}">{{ form.business_sector.label }}</label>
+                        {{ form.business_sector }}
+                        {% if form.business_sector.errors %}
+                            <div class="field-error">{{ form.business_sector.errors.0 }}</div>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="actions-row" style="margin-top: 18px;">
+                    <button type="submit" class="btn accent">{{ submit_label }}</button>
+
+                    {% if client_obj %}
+                        <a class="btn secondary" href="{% url 'client_detail' client_obj.id %}">Annuler</a>
+                    {% else %}
+                        <a class="btn secondary" href="{% url 'client_list' %}">Annuler</a>
+                    {% endif %}
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <aside class="form-side-card">
+        <h2 class="form-section-title">Utilisation</h2>
+
+        <div class="side-note">
+            Un client peut être utilisé dans plusieurs réservations. Son historique servira au suivi commercial et au service après-vente.
+        </div>
+
+        <ul class="detail-list">
+            <li><strong>Nom</strong> Champ obligatoire.</li>
+            <li><strong>Téléphone</strong> Champ obligatoire pour le contact rapide.</li>
+            <li><strong>Email</strong> Utile pour les notifications.</li>
+            <li><strong>Entreprise</strong> Optionnelle si le client est une personne physique.</li>
+        </ul>
+    </aside>
+</section>
+{% endblock %}

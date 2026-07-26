@@ -1,70 +1,204 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Détail panneau - PubPanels</title>
-</head>
-<body>
-    <h1>Détail du panneau</h1>
+{% extends "base_backoffice.html" %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+{% block title %}Détail panneau - PubPanels{% endblock %}
 
-    <p><a href="{% url 'panel_list' %}">Retour à la liste</a></p>
-    <p><a href="{% url 'panel_update' panel.id %}">Modifier ce panneau</a></p>
+{% block backoffice_page_title %}Panneaux{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Panneaux / {{ panel.reference }}{% endblock %}
+{% block backoffice_content_title %}{{ panel.title|default:panel.reference }}{% if panel.title %} ({{ panel.reference }}){% endif %}{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Consultez les informations globales du panneau et accédez à la gestion détaillée de chacune de ses faces.
+    </p>
+{% endblock %}
 
-    <ul>
-        <li><strong>Référence :</strong> {{ panel.reference }}</li>
-        <li><strong>Agence :</strong> {{ panel.agency.name }}</li>
-        <li><strong>Titre :</strong> {{ panel.title|default:"—" }}</li>
-        <li><strong>Catégorie :</strong> {{ panel.get_format_category_display }}</li>
-        <li><strong>Dimensions :</strong> {{ panel.formatted_dimensions }}</li>
-        <li><strong>Surface :</strong> {{ panel.area_sqm }} m²</li>
-        <li><strong>Pays :</strong> {{ panel.get_country_display }}</li>
-        <li><strong>Ville :</strong> {{ panel.city_ref.name|default:panel.city|default:"—" }}</li>
-        <li><strong>Quartier :</strong> {{ panel.district|default:"—" }}</li>
-        <li><strong>Adresse :</strong> {{ panel.address|default:"—" }}</li>
-        <li><strong>Latitude :</strong> {{ panel.latitude|default:"—" }}</li>
-        <li><strong>Longitude :</strong> {{ panel.longitude|default:"—" }}</li>
-        <li><strong>Description :</strong> {{ panel.description|default:"—" }}</li>
-        <li><strong>Statut :</strong> {{ panel.get_status_display }}</li>
-        <li><strong>Publié :</strong> {{ panel.is_published|yesno:"Oui,Non" }}</li>
-        <li><strong>Créé le :</strong> {{ panel.created_at }}</li>
-        <li><strong>Mis à jour le :</strong> {{ panel.updated_at }}</li>
-    </ul>
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'panel_list' %}">Retour à la liste</a>
+        <a class="btn" href="{% url 'panel_update' panel.id %}">Modifier</a>
+        <a class="btn" href="{% url 'panel_qr_print' panel.id %}" target="_blank" rel="noopener noreferrer">
+            QR Code à imprimer
+        </a>
+        <a class="btn" href="{% url 'panel_face_create' panel.id %}">Créer une face</a>
+        <a class="btn accent" href="{% url 'public_panel_detail' panel.id %}" target="_blank" rel="noopener noreferrer">
+            Voir côté public
+        </a>
+    </div>
+{% endblock %}
 
-    <h2>Faces du panneau</h2>
+{% block backoffice_content %}
+<section class="detail-page-layout">
+    <div class="info-stack">
+        <section class="info-card">
+            <h2>Informations générales</h2>
+            <div class="kv-grid">
+                <div class="kv-item">
+                    <span class="kv-label">Nom</span>
+                    <span class="kv-value">{{ panel.title|default:"—" }}</span>
+                </div>
 
-    <table border="1" cellpadding="6">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Orientation</th>
-                <th>Prix mensuel</th>
-                <th>Statut opérationnel</th>
-                <th>Notes</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for face in panel.faces.all %}
-                <tr>
-                    <td>{{ face.code }}</td>
-                    <td>{{ face.orientation|default:"—" }}</td>
-                    <td>{{ face.monthly_price }}</td>
-                    <td>{{ face.get_operational_status_display }}</td>
-                    <td>{{ face.notes|default:"—" }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="5">Aucune face enregistrée pour ce panneau.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+                <div class="kv-item">
+                    <span class="kv-label">Référence</span>
+                    <span class="kv-value">{{ panel.reference }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Régie</span>
+                    <span class="kv-value">{{ panel.agency.name }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Pays</span>
+                    <span class="kv-value">{{ panel.get_country_display }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Ville</span>
+                    <span class="kv-value">{{ panel.geographic_unit.root.name }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Quartier</span>
+                    <span class="kv-value">{{ panel.geographic_unit.path_below_root|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Adresse</span>
+                    <span class="kv-value">{{ panel.address|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Catégorie</span>
+                    <span class="kv-value">{{ panel.get_format_category_display }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Dimensions</span>
+                    <span class="kv-value">{{ panel.formatted_dimensions }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Surface</span>
+                    <span class="kv-value">{% if panel.area_sqm %}{{ panel.area_sqm }} m²{% else %}—{% endif %}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Latitude</span>
+                    <span class="kv-value">{{ panel.latitude|default:"—" }}</span>
+                </div>
+
+                <div class="kv-item">
+                    <span class="kv-label">Longitude</span>
+                    <span class="kv-value">{{ panel.longitude|default:"—" }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="info-card">
+            <h2>Description</h2>
+            <p style="margin-bottom: 0;">
+                {{ panel.description|default:"Aucune description fournie pour ce panneau." }}
+            </p>
+        </section>
+
+        <section class="info-card">
+            <div class="table-toolbar">
+                <h2 style="margin: 0;">Faces du panneau</h2>
+                <div class="table-count">{{ panel.faces.count }} face(s)</div>
+            </div>
+
+            {% if panel.faces.all %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Face</th>
+                                <th>Orientation</th>
+                                <th>Prix mensuel</th>
+                                <th>Statut opérationnel</th>
+                                <th>Images</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for face in panel.faces.all %}
+                                <tr>
+                                    <td><strong>Face {{ face.code }}</strong></td>
+                                    <td>{{ face.orientation|default:"—" }}</td>
+                                    <td>{{ face.monthly_price }}</td>
+                                    <td>
+                                        <span class="status-badge">
+                                            {{ face.get_operational_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ face.images.count }}</td>
+                                    <td>
+                                        <div class="action-links">
+                                            <a href="{% url 'panel_face_detail' face.id %}">Voir</a>
+                                            <a href="{% url 'panel_face_update' face.id %}">Modifier</a>
+                                            <a href="{% url 'panel_face_image_create' face.id %}">Ajouter une image</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="muted">Aucune face renseignée pour ce panneau.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <aside class="info-card side-summary-card">
+        <p class="muted" style="margin-top: 0; margin-bottom: 6px;">Résumé de gestion</p>
+        <h2 style="margin-top: 0;">{{ panel.reference }}</h2>
+
+        <div class="summary-block">
+            <strong>Statut panneau</strong>
+            <div style="margin-top: 8px;">{{ panel.get_status_display }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Publication</strong>
+            <div style="margin-top: 8px;">
+                {% if panel.is_published %}
+                    <span class="status-badge status-active">Publié</span>
+                {% else %}
+                    <span class="status-badge status-cancelled">Non publié</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Faces configurées</strong>
+            <div class="muted">{{ panel.faces.count }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Carte</strong>
+            <div class="muted" style="margin-top: 8px;">
+                {% if panel.google_maps_url %}
+                    <a href="{{ panel.google_maps_url }}" target="_blank" rel="noopener noreferrer">Voir sur la carte</a>
+                {% else %}
+                    Non disponible
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Créé le</strong>
+            <div class="muted">{{ panel.created_at }}</div>
+        </div>
+
+        <div class="summary-block">
+            <strong>Mis à jour le</strong>
+            <div class="muted">{{ panel.updated_at }}</div>
+        </div>
+
+        <div class="action-column">
+            <a class="btn" href="{% url 'panel_update' panel.id %}">Modifier le panneau</a>
+            <a class="btn secondary" href="{% url 'panel_face_create' panel.id %}">Créer une face</a>
+        </div>
+    </aside>
+</section>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Configurer l'import - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Panneaux{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Panneaux / Import / Configuration{% endblock %}
+{% block backoffice_content_title %}Où commencent vos données ?{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Cochez la ou les ligne(s) qui contiennent les titres de vos colonnes (Ville, Adresse...).
+        Si vos titres sont répartis sur deux lignes, cochez-les toutes les deux.
+        Tout ce qui se trouve au-dessus ou entre elles sera ignoré.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <form method="post" action="{% url 'panel_import_cancel' batch.id %}" onsubmit="return confirm('Annuler cet import ?');">
+        {% csrf_token %}
+        <button type="submit" class="btn danger">Annuler cet import</button>
+    </form>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    <form method="post" id="configure-form">
+        {% csrf_token %}
+
+        <div class="raw-grid-scroll">
+            <table class="raw-grid-table">
+                {% for row in preview_rows %}
+                    <tr class="raw-grid-row">
+                        <td class="raw-grid-select">
+                            <label class="checkbox-label" style="white-space: nowrap;">
+                                <input type="checkbox" name="header_rows" value="{{ forloop.counter0 }}">
+                                En-tête
+                            </label>
+                        </td>
+                        {% for cell in row %}
+                            <td {% if cell.bg %}style="background: {{ cell.bg }};"{% endif %}>{{ cell.v }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        {% if truncated %}
+            <p class="muted" style="margin-top: 10px;">
+                Aperçu limité aux 30 premières lignes.
+            </p>
+        {% endif %}
+
+        <div class="actions-row" style="margin-top: 16px;">
+            <button type="submit" class="btn accent">Valider les en-têtes sélectionnées</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

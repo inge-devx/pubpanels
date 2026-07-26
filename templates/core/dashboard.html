@@ -1,31 +1,208 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard - PubPanels</title>
-</head>
-<body>
-    <h1>Dashboard</h1>
+{% extends "base_backoffice.html" %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
+{% block title %}Dashboard - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Dashboard{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Dashboard{% endblock %}
+{% block backoffice_content_title %}Vue d’ensemble{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Suivez l’activité commerciale, l’occupation des faces et les réservations à traiter en priorité.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'panel_list' %}">Voir les panneaux</a>
+        <a class="btn accent" href="{% url 'reservation_list' %}">Voir les réservations</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    <h2 class="section-title" style="margin-top: 0;">Filtre de période</h2>
+    <p class="muted">
+        Les indicateurs ci-dessous sont filtrés sur la date de création des réservations.
+    </p>
+
+    {% if date_filter_error %}
+        <ul class="messages">
+            <li>{{ date_filter_error }}</li>
         </ul>
     {% endif %}
 
-    <p><a href="{% url 'home' %}">Accueil</a></p>
-    <p><a href="{% url 'panel_list' %}">Voir les panneaux</a></p>
-    <p><a href="{% url 'panel_create' %}">Créer un panneau</a></p>
-    <p><a href="{% url 'reservation_list' %}">Voir les réservations</a></p>
-    <p><a href="{% url 'reservation_create' %}">Créer une réservation</a></p>
+    <form method="get">
+        <div class="form-grid">
+            <p>
+                <label for="id_start_date">Date début</label>
+                <input type="date" name="start_date" id="id_start_date" value="{{ start_date }}">
+            </p>
 
-    <ul>
-        <li>Nombre de panneaux : {{ panel_count }}</li>
-        <li>Nombre de réservations : {{ reservation_count }}</li>
-        <li>Réservations en attente : {{ pending_count }}</li>
-        <li>Réservations actives : {{ active_count }}</li>
-    </ul>
-</body>
-</html>
+            <p>
+                <label for="id_end_date">Date fin</label>
+                <input type="date" name="end_date" id="id_end_date" value="{{ end_date }}">
+            </p>
+        </div>
+
+        <div class="actions-row">
+            <button type="submit">Appliquer</button>
+            <a class="btn secondary" href="{% url 'dashboard' %}">Réinitialiser</a>
+        </div>
+    </form>
+</section>
+
+<section class="card-grid">
+    <div class="metric-card">
+        <div class="label">Panneaux</div>
+        <div class="value">{{ panel_count }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="label">Réservations</div>
+        <div class="value">{{ reservation_count }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="label">Faces disponibles</div>
+        <div class="value">{{ available_faces_count }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="label">Faces occupées</div>
+        <div class="value">{{ occupied_faces_count }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="label">Taux d’occupation</div>
+        <div class="value">{{ occupancy_rate }}%</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="label">CA total</div>
+        <div class="value">{{ total_revenue }}</div>
+    </div>
+</section>
+
+<section class="content-card">
+    <h2 class="section-title" style="margin-top: 0;">À traiter en priorité</h2>
+
+    <div class="card-grid">
+        <div class="metric-card">
+            <div class="label">En attente</div>
+            <div class="value">{{ pending_count }}</div>
+            <div class="inline-actions" style="margin-top: 12px;">
+                <a class="btn secondary" href="{% url 'reservation_list' %}?status=pending">Voir</a>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="label">Approuvées</div>
+            <div class="value">{{ approved_count }}</div>
+            <div class="inline-actions" style="margin-top: 12px;">
+                <a class="btn secondary" href="{% url 'reservation_list' %}?status=approved">Voir</a>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="label">Actives</div>
+            <div class="value">{{ active_count }}</div>
+            <div class="inline-actions" style="margin-top: 12px;">
+                <a class="btn secondary" href="{% url 'reservation_list' %}?status=active">Voir</a>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="label">Terminées</div>
+            <div class="value">{{ completed_count }}</div>
+            <div class="inline-actions" style="margin-top: 12px;">
+                <a class="btn secondary" href="{% url 'reservation_list' %}?status=completed">Voir</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content-card">
+    <h2 class="section-title" style="margin-top: 0;">Réservations qui se terminent bientôt</h2>
+
+    <p class="muted">
+        Période surveillée :
+        {% if today and upcoming_limit %}
+            {{ today }} → {{ upcoming_limit }}
+        {% else %}
+            —
+        {% endif %}
+    </p>
+
+    {% if ending_soon_reservations %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Panneau</th>
+                        <th>Face</th>
+                        <th>Client</th>
+                        <th>Date de fin</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ending_soon_reservations %}
+                        <tr>
+                            <td>{{ r.panel_face.panel.reference }}</td>
+                            <td>Face {{ r.panel_face.code }}</td>
+                            <td>{{ r.client }}</td>
+                            <td>{{ r.end_date }}</td>
+                            <td>
+                                <a href="{% url 'reservation_detail' r.id %}">Voir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Aucune réservation active ne se termine bientôt.</p>
+    {% endif %}
+</section>
+
+<section class="content-card">
+    <h2 class="section-title" style="margin-top: 0;">Activité récente</h2>
+
+    {% if recent_reservations %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Panneau</th>
+                        <th>Face</th>
+                        <th>Client</th>
+                        <th>Statut</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recent_reservations %}
+                        <tr>
+                            <td>{{ r.panel_face.panel.reference }}</td>
+                            <td>Face {{ r.panel_face.code }}</td>
+                            <td>{{ r.client }}</td>
+                            <td>
+                                <span class="status-badge status-{{ r.status }}">
+                                    {{ r.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ r.created_at }}</td>
+                            <td>
+                                <a href="{% url 'reservation_detail' r.id %}">Voir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Aucune activité récente.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,21 +1,40 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Demande envoyée - PubPanels</title>
-</head>
-<body>
-    <h1>Votre demande a bien été envoyée</h1>
+{% extends "base_public.html" %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+{% block title %}Demande envoyée - PubPanels{% endblock %}
 
-    <p>Notre équipe pourra examiner votre demande et vous recontacter.</p>
-    <p><a href="{% url 'public_catalog' %}">Retour au catalogue</a></p>
-</body>
-</html>
+{% block public_content %}
+<section class="success-wrap">
+    <div class="content-card success-card">
+        <div class="success-icon">✓</div>
+
+        <h1 class="success-title">Demande envoyée avec succès</h1>
+
+        <p class="success-text">
+            Votre demande de réservation a bien été transmise à l’régie concernée.
+            Elle sera étudiée puis confirmée ou refusée après vérification de la disponibilité réelle
+            de la face demandée sur la période souhaitée.
+        </p>
+
+        <div class="success-info-grid">
+            <div class="success-info-box">
+                <strong>Étape suivante</strong>
+                <span>L’régie va examiner votre demande et vérifier la disponibilité finale.</span>
+            </div>
+
+            <div class="success-info-box">
+                <strong>Prise de contact</strong>
+                <span>Vous serez recontacté via les coordonnées que vous avez renseignées.</span>
+            </div>
+
+            <div class="success-info-box">
+                <strong>Important</strong>
+                <span>L’envoi de la demande ne vaut pas encore validation définitive de la réservation.</span>
+            </div>
+        </div>
+
+        <div class="success-actions">
+            <a class="btn accent" href="{% url 'public_catalog' %}">Retour au catalogue</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

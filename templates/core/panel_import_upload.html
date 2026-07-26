@@ -1,0 +1,38 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Importer des panneaux - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Panneaux{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Panneaux / Import{% endblock %}
+{% block backoffice_content_title %}Importer une liste de panneaux{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Chargez votre fichier Excel tel quel, sans le reformater. Vous reconstruirez ensuite
+        chaque panneau ligne par ligne, à votre rythme.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn secondary" href="{% url 'panel_import_batch_list' %}">Mes imports en cours</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-field">
+            <label for="id_file">Fichier Excel (.xlsx)</label>
+            <input type="file" name="file" id="id_file" accept=".xlsx" required>
+            <div class="field-help">
+                Aucun format particulier n'est exigé : chaque ligne de votre fichier vous sera
+                affichée telle quelle pendant la reconstruction.
+            </div>
+        </div>
+        <div class="actions-row" style="margin-top: 18px;">
+            <button type="submit" class="btn accent">Charger le fichier</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body %}
+<div class="backoffice-shell">
+    <aside class="backoffice-sidebar">
+        <div class="backoffice-sidebar-brand">
+            <div class="backoffice-brand-mark">PP</div>
+            <div>
+                <div class="backoffice-brand-title">PubPanels</div>
+                <div class="backoffice-brand-subtitle">Backoffice</div>
+            </div>
+        </div>
+
+        <nav class="backoffice-nav">
+
+            <a class="backoffice-nav-link" href="{% url 'dashboard' %}">
+                <span class="backoffice-nav-label">Dashboard</span>
+                <span class="backoffice-nav-help">Vue d’ensemble</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'action_center' %}">
+                <span class="backoffice-nav-label">Centre d'actions</span>
+                <span class="backoffice-nav-help">À traiter maintenant</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'panel_list' %}">
+                <span class="backoffice-nav-label">Panneaux</span>
+                <span class="backoffice-nav-help">Catalogue interne</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'panel_create' %}">
+                <span class="backoffice-nav-label">Créer un panneau</span>
+                <span class="backoffice-nav-help">Nouveau support</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'panel_import_upload' %}">
+                <span class="backoffice-nav-label">Importer des panneaux</span>
+                <span class="backoffice-nav-help">Depuis un fichier Excel</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'reservation_list' %}">
+                <span class="backoffice-nav-label">Réservations</span>
+                <span class="backoffice-nav-help">Demandes et suivi</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'reservation_create' %}">
+                <span class="backoffice-nav-label">Créer une réservation</span>
+                <span class="backoffice-nav-help">Saisie manuelle</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'client_list' %}">
+                <span class="backoffice-nav-label">Clients</span>
+                <span class="backoffice-nav-help">Voir vos clients</span>
+            </a>
+
+            <a class="backoffice-nav-link" href="{% url 'client_create' %}">
+                <span class="backoffice-nav-label">Créer un client</span>
+                <span class="backoffice-nav-help">Créer un nouveau client</span>
+            </a>
+
+
+            <a class="backoffice-nav-link" href="{% url 'public_catalog' %}" target="_blank" rel="noopener noreferrer">
+                <span class="backoffice-nav-label">Catalogue public</span>
+                <span class="backoffice-nav-help">Ouvrir le front office</span>
+            </a>
+
+            {% if user.role == "super_admin" %}
+                <a class="backoffice-nav-link" href="{% url 'agency_list' %}">
+                    <span class="backoffice-nav-label">Régies</span>
+                    <span class="backoffice-nav-help">Gestion des partenaires</span>
+                </a>
+            {% endif %}
+
+            {% if user.role == "super_admin" or user.role == "agency_admin" %}
+                <a class="backoffice-nav-link" href="{% url 'agency_profile' %}">
+                    <span class="backoffice-nav-label">Ma régie</span>
+                    <span class="backoffice-nav-help">Profil et documents</span>
+                </a>
+            {% endif %}
+        </nav>
+    </aside>
+
+    <div class="backoffice-main">
+        <header class="backoffice-topbar">
+            <div class="backoffice-topbar-left">
+                <p class="backoffice-context-label">Espace de gestion</p>
+                <h1 class="backoffice-context-title">
+                    {% block backoffice_page_title %}Backoffice{% endblock %}
+                </h1>
+            </div>
+
+            <div class="backoffice-topbar-right">
+                <div class="backoffice-user-box">
+                    <div class="backoffice-user-avatar">
+                        {% if user.is_authenticated and user.username %}
+                            {{ user.username|slice:":1"|upper }}
+                        {% else %}
+                            U
+                        {% endif %}
+                    </div>
+
+                    <div class="backoffice-user-meta">
+                        <div class="backoffice-user-name">
+                            {% if user.is_authenticated %}
+                                {{ user.username }}
+                            {% else %}
+                                Utilisateur
+                            {% endif %}
+                        </div>
+
+                        <div class="backoffice-user-sub">
+                            {% if user.is_authenticated and user.agency %}
+                                {{ user.agency.name }}
+                            {% else %}
+                                Session active
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if user.is_authenticated %}
+                        <div class="backoffice-user-actions">
+                            <form method="post" action="{% url 'logout' %}" class="logout-form">
+                                {% csrf_token %}
+                                <button type="submit" class="logout-button">Déconnexion</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        <main class="backoffice-content">
+            <section class="backoffice-page-head">
+                <div>
+                    <p class="backoffice-breadcrumb">
+                        {% block backoffice_breadcrumb %}Backoffice{% endblock %}
+                    </p>
+                    <h2 class="backoffice-page-heading">
+                        {% block backoffice_content_title %}Vue de travail{% endblock %}
+                    </h2>
+                    {% block backoffice_content_intro %}
+                        <p class="backoffice-page-intro">
+                            Gérez vos données et vos opérations depuis cette interface.
+                        </p>
+                    {% endblock %}
+                </div>
+
+                {% block backoffice_page_actions %}{% endblock %}
+            </section>
+
+            {% if messages %}
+                <ul class="messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <section class="backoffice-page-body">
+                {% block backoffice_content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

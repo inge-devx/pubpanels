@@ -1,0 +1,71 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Clients - PubPanels{% endblock %}
+
+{% block backoffice_page_title %}Clients{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Clients{% endblock %}
+{% block backoffice_content_title %}Liste des clients{% endblock %}
+{% block backoffice_content_intro %}
+    <p class="backoffice-page-intro">
+        Consultez les clients connus, leur activité et leur historique de réservation.
+    </p>
+{% endblock %}
+
+{% block backoffice_page_actions %}
+    <div class="actions-row" style="margin-bottom: 0;">
+        <a class="btn accent" href="{% url 'client_create' %}">Créer un client</a>
+    </div>
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card">
+    <div class="table-toolbar">
+        <h2 class="section-title" style="margin: 0;">Clients</h2>
+        <div class="table-count">{{ clients|length }} client(s)</div>
+    </div>
+
+    {% if clients %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Entreprise</th>
+                        <th>Téléphone</th>
+                        <th>Email</th>
+                        <th>Secteur</th>
+                        <th>Réservations</th>
+                        <th>Actives</th>
+                        <th>Terminées</th>
+                        <th>Dernière activité</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                        <tr>
+                            <td><strong>{{ client.contact_name }}</strong></td>
+                            <td>{{ client.company_name|default:"—" }}</td>
+                            <td>{{ client.phone }}</td>
+                            <td>{{ client.email|default:"—" }}</td>
+                            <td>{{ client.business_sector|default:"—" }}</td>
+                            <td>{{ client.reservation_count }}</td>
+                            <td>{{ client.active_reservation_count }}</td>
+                            <td>{{ client.completed_reservation_count }}</td>
+                            <td>{{ client.last_reservation_date|default:"—" }}</td>
+                            <td>
+                                <div class="action-links">
+                                    <a href="{% url 'client_detail' client.id %}">Voir</a>
+                                    <a href="{% url 'client_update' client.id %}">Modifier</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Aucun client trouvé.</p>
+    {% endif %}
+</section>
+{% endblock %}

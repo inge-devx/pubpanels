@@ -1,0 +1,143 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}PubPanels{% endblock %}
+
+{% block public_content %}
+
+<!-- HERO -->
+<section class="home-hero">
+    <div class="hero-overlay"></div>
+
+    <img class="hero-bg" src="{% static 'images/home/hero-billboard.png' %}" alt="Panneau publicitaire">
+
+    <div class="hero-content">
+        <h1>
+            Choisissez les bons emplacements pour vos campagnes publicitaires
+        </h1>
+
+        <p>
+            Accédez à des panneaux visibles, comparez les options et lancez vos campagnes en toute simplicité.
+        </p>
+
+        <a href="{% url 'public_catalog' %}" class="btn accent">
+            Voir les panneaux disponibles
+        </a>
+    </div>
+</section>
+
+
+<!-- AVANTAGES -->
+<section class="home-section features-section">
+    <h2>Pourquoi utiliser PubPanels</h2>
+
+    <div class="features-grid">
+
+        <div class="feature-card">
+            <img src="{% static 'images/home/icon-strategic-location.png' %}">
+            <p>Emplacements stratégiques</p>
+        </div>
+
+        <div class="feature-card">
+            <img src="{% static 'images/home/icon-reliable-data.png' %}">
+            <p>Données fiables</p>
+        </div>
+
+        <div class="feature-card">
+            <img src="{% static 'images/home/icon-fast-booking.png' %}">
+            <p>Réservation rapide</p>
+        </div>
+
+        <div class="feature-card">
+            <img src="{% static 'images/home/icon-trusted-agencies.png' %}">
+            <p>Régies de confiance</p>
+        </div>
+
+    </div>
+</section>
+
+<!-- À PROPOS -->
+<section class="home-section about-section">
+    <div class="about-grid">
+        <div class="about-text">
+            <span class="section-kicker">À propos</span>
+
+            <h2>Notre mission : connecter les marques aux bons emplacements</h2>
+
+            <div class="about-copy-card">
+                <h3>Un problème simple</h3>
+                <p>
+                    Les campagnes sur panneaux reposent souvent sur des choix approximatifs :
+                    manque d’informations, supports dispersés et visibilité limitée.
+                </p>
+            </div>
+
+            <div class="about-copy-card">
+                <h3>Notre approche</h3>
+                <p>
+                    Nous aidons les annonceurs à choisir les bons emplacements en mettant l’accent
+                    sur la visibilité réelle et l’impact des panneaux.
+                </p>
+            </div>
+
+            <a href="{% url 'public_catalog' %}" class="btn accent">
+                Explorer les panneaux
+            </a>
+        </div>
+
+        <div class="about-image-grid">
+            <img class="about-img about-img-large" src="{% static 'images/home/about-panel-1.png' %}" alt="Panneau publicitaire en ville">
+            <img class="about-img" src="{% static 'images/home/about-panel-2.png' %}" alt="Panneau publicitaire sur une grande route">
+            <img class="about-img" src="{% static 'images/home/about-panel-3.png' %}" alt="Panneau publicitaire de nuit">
+        </div>
+    </div>
+</section>
+
+
+
+
+<!-- COMMENT ÇA MARCHE -->
+<section class="home-section">
+    <h2>Comment ça marche</h2>
+
+    <div class="steps-grid">
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-explore.png' %}">
+            <h3>Explorer</h3>
+            <p>Parcourez les panneaux selon votre zone et votre besoin.</p>
+        </div>
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-compare.png' %}">
+            <h3>Comparer</h3>
+            <p>Analysez les emplacements selon leur visibilité et leur prix.</p>
+        </div>
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-reserve.png' %}">
+            <h3>Réserver</h3>
+            <p>Envoyez une demande en quelques clics.</p>
+        </div>
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-confirm.png' %}">
+            <h3>Confirmer</h3>
+            <p>Validez avec l’régie et lancez votre campagne.</p>
+        </div>
+
+    </div>
+</section>
+
+
+
+<!-- CTA -->
+<section class="home-cta">
+    <h2>Prêt à lancer votre campagne ?</h2>
+
+    <a href="{% url 'public_catalog' %}" class="btn accent">
+        Accéder au catalogue
+    </a>
+</section>
+
+{% endblock %}
