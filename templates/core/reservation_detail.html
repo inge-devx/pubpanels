@@ -29,136 +29,159 @@
 {% block backoffice_content %}
 <section class="detail-page-layout">
     <div class="info-stack">
+
+        <!-- SECTION 1 : INFORMATIONS GÉNÉRALES -->
         <section class="info-card">
-            <h2>Informations générales</h2>
-            <div class="kv-grid">
-                <div class="kv-item">
-                    <span class="kv-label">Régie</span>
-                    <span class="kv-value">{{ reservation.agency.name }}</span>
+            <button type="button" class="pf-toggle-summary" data-toggle-target="sect-general">
+                <span class="pf-toggle-icon" aria-hidden="true">▸</span>
+                <span>Informations générales</span>
+            </button>
+
+            <div class="pf-toggle-body" id="sect-general">
+                <div class="kv-grid" style="margin-top: 14px;">
+                    <div class="kv-item">
+                        <span class="kv-label">Régie</span>
+                        <span class="kv-value">{{ reservation.agency.name }}</span>
+                    </div>
+
                     {% if reservation.status == "interrupted" %}
+                        <div class="kv-item">
+                            <span class="kv-label">Date d’interruption</span>
+                            <span class="kv-value">{{ reservation.interrupted_at }}</span>
+                        </div>
+                        <div class="kv-item">
+                            <span class="kv-label">Motif</span>
+                            <span class="kv-value">{{ reservation.get_interrupted_reason_display }}</span>
+                        </div>
+                        {% if reservation.interrupted_comment %}
+                            <div class="kv-item" style="grid-column: 1 / -1;">
+                                <span class="kv-label">Commentaire</span>
+                                <span class="kv-value">{{ reservation.interrupted_comment }}</span>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+
                     <div class="kv-item">
-                        <span class="kv-label">Date d’interruption</span>
-                        <span class="kv-value">{{ reservation.interrupted_at }}</span>
+                        <span class="kv-label">Statut</span>
+                        <span class="kv-value">
+                            <span class="status-badge status-{{ reservation.status }}">
+                                {{ reservation.get_status_display }}
+                            </span>
+                        </span>
                     </div>
+
                     <div class="kv-item">
-                        <span class="kv-label">Motif</span>
-                        <span class="kv-value">{{ reservation.get_interrupted_reason_display }}</span>
+                        <span class="kv-label">Source</span>
+                        <span class="kv-value">{{ reservation.get_source_display }}</span>
                     </div>
-                    {% if reservation.interrupted_comment %}
-                        <div class="kv-item" style="grid-column: 1 / -1;">
-                            <span class="kv-label">Commentaire</span>
-                            <span class="kv-value">{{ reservation.interrupted_comment }}</span>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Créée le</span>
+                        <span class="kv-value">{{ reservation.created_at }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Date de début</span>
+                        <span class="kv-value">{{ reservation.start_date }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Date de fin</span>
+                        <span class="kv-value">{{ reservation.end_date }}</span>
+                    </div>
+
+                    {% if reservation.duration_months %}
+                        <div class="kv-item">
+                            <span class="kv-label">Durée</span>
+                            <span class="kv-value">{{ reservation.duration_months }} mois</span>
                         </div>
                     {% endif %}
-                {% endif %}
-                </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Statut</span>
-                    <span class="kv-value">
-                        <span class="status-badge status-{{ reservation.status }}">
-                            {{ reservation.get_status_display }}
-                        </span>
-                    </span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Source</span>
-                    <span class="kv-value">{{ reservation.get_source_display }}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Créée le</span>
-                    <span class="kv-value">{{ reservation.created_at }}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Date de début</span>
-                    <span class="kv-value">{{ reservation.start_date }}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Date de fin</span>
-                    <span class="kv-value">{{ reservation.end_date }}</span>
-                </div>
-
-                {% if reservation.duration_months %}
                     <div class="kv-item">
-                        <span class="kv-label">Durée</span>
-                        <span class="kv-value">{{ reservation.duration_months }} mois</span>
+                        <span class="kv-label">Aide design</span>
+                        <span class="kv-value">{{ reservation.need_design_help|yesno:"Oui,Non" }}</span>
                     </div>
-                {% endif %}
-
-                <div class="kv-item">
-                    <span class="kv-label">Aide design</span>
-                    <span class="kv-value">{{ reservation.need_design_help|yesno:"Oui,Non" }}</span>
                 </div>
             </div>
         </section>
 
+        <!-- SECTION 2 : PANNEAU ET FACE RÉSERVÉE -->
         <section class="info-card">
-            <h2>Panneau et face réservée</h2>
-            <div class="kv-grid">
-                <div class="kv-item">
-                    <span class="kv-label">Panneau</span>
-                    <span class="kv-value">{{ reservation.panel_face.panel.reference }}</span>
-                </div>
+            <button type="button" class="pf-toggle-summary" data-toggle-target="sect-panel">
+                <span class="pf-toggle-icon" aria-hidden="true">▸</span>
+                <span>Panneau et face réservée</span>
+            </button>
 
-                <div class="kv-item">
-                    <span class="kv-label">Face</span>
-                    <span class="kv-value">Face {{ reservation.panel_face.code }}</span>
-                </div>
+            <div class="pf-toggle-body" id="sect-panel">
+                <div class="kv-grid" style="margin-top: 14px;">
+                    <div class="kv-item">
+                        <span class="kv-label">Panneau</span>
+                        <span class="kv-value">{{ reservation.panel_face.panel.reference }}</span>
+                    </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Orientation</span>
-                    <span class="kv-value">{{ reservation.panel_face.orientation|default:"—" }}</span>
-                </div>
+                    <div class="kv-item">
+                        <span class="kv-label">Face</span>
+                        <span class="kv-value">Face {{ reservation.panel_face.code }}</span>
+                    </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Prix mensuel</span>
-                    <span class="kv-value">{{ reservation.panel_face.monthly_price }}</span>
-                </div>
+                    <div class="kv-item">
+                        <span class="kv-label">Orientation</span>
+                        <span class="kv-value">{{ reservation.panel_face.orientation|default:"—" }}</span>
+                    </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Ville</span>
-                    <span class="kv-value">
-                        {{ reservation.panel_face.panel.geographic_unit.root.name }}
-                    </span>
-                </div>
+                    <div class="kv-item">
+                        <span class="kv-label">Prix mensuel</span>
+                        <span class="kv-value">{{ reservation.panel_face.monthly_price }}</span>
+                    </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Quartier</span>
-                    <span class="kv-value">{{ reservation.panel_face.panel.geographic_unit.path_below_root|default:"—" }}</span>
+                    <div class="kv-item">
+                        <span class="kv-label">Ville</span>
+                        <span class="kv-value">
+                            {{ reservation.panel_face.panel.geographic_unit.root.name }}
+                        </span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Quartier</span>
+                        <span class="kv-value">{{ reservation.panel_face.panel.geographic_unit.path_below_root|default:"—" }}</span>
+                    </div>
                 </div>
             </div>
         </section>
 
+        <!-- SECTION 3 : CLIENT -->
         <section class="info-card">
-            <h2>Client</h2>
-            <div class="kv-grid">
-                <div class="kv-item">
-                    <span class="kv-label">Contact</span>
-                    <span class="kv-value">{{ reservation.client }}</span>
-                </div>
+            <button type="button" class="pf-toggle-summary" data-toggle-target="sect-client">
+                <span class="pf-toggle-icon" aria-hidden="true">▸</span>
+                <span>Client</span>
+            </button>
 
-                <div class="kv-item">
-                    <span class="kv-label">Entreprise</span>
-                    <span class="kv-value">{{ reservation.client.company_name|default:"—" }}</span>
-                </div>
+            <div class="pf-toggle-body" id="sect-client">
+                <div class="kv-grid" style="margin-top: 14px;">
+                    <div class="kv-item">
+                        <span class="kv-label">Contact</span>
+                        <span class="kv-value">{{ reservation.client }}</span>
+                    </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Téléphone</span>
-                    <span class="kv-value">{{ reservation.client.phone|default:"—" }}</span>
-                </div>
+                    <div class="kv-item">
+                        <span class="kv-label">Entreprise</span>
+                        <span class="kv-value">{{ reservation.client.company_name|default:"—" }}</span>
+                    </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Email</span>
-                    <span class="kv-value">{{ reservation.client.email|default:"—" }}</span>
-                </div>
+                    <div class="kv-item">
+                        <span class="kv-label">Téléphone</span>
+                        <span class="kv-value">{{ reservation.client.phone|default:"—" }}</span>
+                    </div>
 
-                <div class="kv-item">
-                    <span class="kv-label">Secteur d’activité</span>
-                    <span class="kv-value">{{ reservation.client.business_sector|default:"—" }}</span>
+                    <div class="kv-item">
+                        <span class="kv-label">Email</span>
+                        <span class="kv-value">{{ reservation.client.email|default:"—" }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Secteur d’activité</span>
+                        <span class="kv-value">{{ reservation.client.business_sector|default:"—" }}</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -525,6 +548,24 @@
     });
     </script>
 {% endif %}
-{% endblock %}
 
+{% endblock %}
+<script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleButtons = document.querySelectorAll(".pf-toggle-summary");
+
+            toggleButtons.forEach(button => {
+                const targetId = button.getAttribute("data-toggle-target");
+                const body = document.getElementById(targetId);
+
+                if (body) {
+                    // Un événement click classique suffit, les navigateurs mobiles le traduisent d'eux-mêmes
+                    button.addEventListener("click", function () {
+                        const isOpen = body.classList.toggle("is-open");
+                        button.classList.toggle("is-open", isOpen);
+                    });
+                }
+            });
+        });
+    </script>
 {% endblock %}

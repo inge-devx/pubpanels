@@ -69,6 +69,8 @@ def face_is_publicly_available(face):
 
 
 def public_catalog(request):
+    if "confined_agency_slug" in request.session:
+        del request.session["confined_agency_slug"]
     selected_country = request.GET.get("country", "").strip()
     selected_city = request.GET.get("city", "").strip()
     selected_agency = request.GET.get("agency", "").strip()
@@ -174,6 +176,11 @@ def public_catalog(request):
         .order_by("name")
     )
 
+    active_filters_count = sum(
+        1 for v in [selected_country, selected_city, selected_agency, selected_format_category, selected_start_date]
+        if v
+    )
+
     context = {
         "panels": page_obj.object_list,
         "page_obj": page_obj,
@@ -192,11 +199,14 @@ def public_catalog(request):
         "period_error": period_error,
         "requested_start_date": requested_start_date,
         "requested_end_date": requested_end_date,
+        "active_filters_count": active_filters_count,
     }
     return render(request, "public/catalog.html", context)
 
 
 def public_panel_detail(request, panel_id):
+    if "confined_agency_slug" in request.session:
+        del request.session["confined_agency_slug"]
     panel = get_object_or_404(
         Panel.objects.select_related("agency", "geographic_unit").prefetch_related(
             "faces",
@@ -373,6 +383,7 @@ def private_agency_catalog(request, agency_slug):
         slug=agency_slug,
         status=Agency.Status.ACTIVE,
     )
+    request.session["confined_agency_slug"] = catalog_agency.slug
 
     selected_country = request.GET.get("country", "").strip()
     selected_city = request.GET.get("city", "").strip()
@@ -460,6 +471,11 @@ def private_agency_catalog(request, agency_slug):
             GeographicLevel.objects.filter(country__code=selected_country).order_by("order")
         )
 
+    active_filters_count = sum(
+        1 for v in [selected_country, selected_city, selected_format_category, selected_start_date]
+        if v
+    )
+
     context = {
         "panels": page_obj.object_list,
         "page_obj": page_obj,
@@ -480,6 +496,7 @@ def private_agency_catalog(request, agency_slug):
         "requested_end_date": requested_end_date,
         "is_private_catalog": True,
         "catalog_agency": catalog_agency,
+        "active_filters_count": active_filters_count,
     }
 
     return render(request, "public/catalog.html", context)
@@ -491,6 +508,7 @@ def private_agency_panel_detail(request, agency_slug, panel_id):
         slug=agency_slug,
         status=Agency.Status.ACTIVE,
     )
+    request.session["confined_agency_slug"] = catalog_agency.slug
 
     panel = get_object_or_404(
         Panel.objects.select_related("agency", "geographic_unit").prefetch_related(

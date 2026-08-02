@@ -19,29 +19,37 @@
 
 {% block backoffice_content %}
 <section class="content-card backoffice-filter-card">
-    <h2 class="section-title" style="margin-top: 0;">Filtres</h2>
+    <!-- Le titre devient un bouton cliquable avec sa flèche -->
+    <button type="button" class="filter-toggle-header" id="filter-toggle-btn">
+        <span class="filter-toggle-icon" aria-hidden="true">▸</span>
+        <h2 class="section-title" style="margin: 0; display: inline-block;">Filtres</h2>
+    </button>
 
-    <form method="get" id="reservation-filter-form">
-        <div class="backoffice-filter-row">
-            <div class="backoffice-filter-field">
-                <label for="id_status">Statut</label>
-                <select name="status" id="id_status">
-                    <option value="">Tous les statuts</option>
-                    {% for value, label in status_choices %}
-                        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+    <!-- Conteneur qui va s'afficher ou se masquer -->
+    <div class="filter-toggle-body" id="filter-toggle-content">
+        <form method="get" id="reservation-filter-form" style="margin-top: 14px;">
+            <div class="backoffice-filter-row">
+                <div class="backoffice-filter-field">
+                    <label for="id_status">Statut</label>
+                    <select name="status" id="id_status">
+                        <option value="">Tous les statuts</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-            <div class="backoffice-filter-field">
-                <label>&nbsp;</label>
-                <a class="btn secondary" href="{% url 'reservation_list' %}">Réinitialiser</a>
+                <div class="backoffice-filter-field">
+                    <label>&nbsp;</label>
+                    <a class="btn secondary" href="{% url 'reservation_list' %}">Réinitialiser</a>
+                </div>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 </section>
+
 
 <section class="content-card">
     <div class="table-toolbar">
@@ -106,9 +114,34 @@ document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("reservation-filter-form");
     const statusField = document.getElementById("id_status");
 
+    // Soumission automatique lors du changement de statut
     if (form && statusField) {
         statusField.addEventListener("change", function () {
             form.submit();
+        });
+    }
+
+    // --- SCRIPT POUR LE FILTRE DÉPLIABLE SUR MOBILE ---
+    const filterBtn = document.getElementById("filter-toggle-btn");
+    const filterContent = document.getElementById("filter-toggle-content");
+
+    if (filterBtn && filterContent) {
+        // Initialisation si on arrive directement sur mobile
+        if (window.innerWidth <= 768) {
+            filterBtn.classList.remove("is-open");
+            filterContent.classList.remove("is-open");
+        } else {
+            // Sur ordinateur, on force l'état ouvert au départ pour le script
+            filterBtn.classList.add("is-open");
+            filterContent.classList.add("is-open");
+        }
+
+        filterBtn.addEventListener("click", function () {
+            // On n'autorise le clic que sur mobile (optionnel mais plus sûr)
+            if (window.innerWidth <= 768) {
+                const isOpen = filterContent.classList.toggle("is-open");
+                filterBtn.classList.toggle("is-open", isOpen);
+            }
         });
     }
 });

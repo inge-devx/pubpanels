@@ -10,217 +10,129 @@
 {% endif %}
 
 {% block public_content %}
-<section class="content-card" style="margin-bottom: 18px;">
-    <div class="actions-row" style="justify-content: space-between; align-items: center; margin-bottom: 0;">
-        <div>
-            <p class="muted" style="margin: 0 0 6px 0;">
-                <a href="{% url 'public_catalog' %}">Catalogue</a>
-                <span style="margin: 0 6px;">›</span>
-                {{ panel.reference }}
-            </p>
-            <h1 class="page-title" style="margin-bottom: 8px;">
-                {{ panel.title|default:panel.reference }}
-            </h1>
-            <p class="muted" style="margin: 0;">
-                Sélectionnez une face pour voir ses images et envoyer une demande de réservation.
-            </p>
-        </div>
+<div class="pd-compact-header">
+    <p class="pd-breadcrumb">
+        <a href="{% url 'public_catalog' %}">Catalogue</a>
+        <span style="margin: 0 6px;">›</span>
+        {{ panel.reference }}
+    </p>
 
-        <div class="actions-row" style="margin-bottom: 0;">
-            {% if is_private_catalog %}
-                <a class="btn secondary" href="{% url 'private_agency_catalog' catalog_agency.slug %}{% if selected_start_date and selected_duration_months %}?start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}">
-                    Retour au catalogue
-                </a>
-            {% else %}
-                <a class="btn secondary" href="{% url 'public_catalog' %}{% if selected_start_date and selected_duration_months %}?start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}">
-                    Retour au catalogue
-                </a>
-            {% endif %}
-        </div>
-    </div>
-</section>
+    {% if is_private_catalog %}
+        <a class="pd-back-link" href="{% url 'private_agency_catalog' catalog_agency.slug %}{% if selected_start_date and selected_duration_months %}?start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}">‹ Retour au catalogue</a>
+    {% else %}
+        <a class="pd-back-link" href="{% url 'public_catalog' %}{% if selected_start_date and selected_duration_months %}?start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}">‹ Retour au catalogue</a>
+    {% endif %}
+</div>
 
 <section class="panel-detail-layout">
     <!-- COLONNE 1 : GALERIE DE LA FACE -->
-    <div>
-        <div class="content-card panel-gallery">
+    <div class="pd-col pd-col-gallery">
+        <div class="content-card panel-gallery" id="panel-gallery-anchor">
             {% if selected_face %}
                 {% with face_images=selected_face.images.all %}
                     {% if face_images %}
-                        {# --- Cas : Face sélectionnée AVEC images --- #}
-                        <img
-                            id="panel-main-image"
-                            class="panel-main-image"
-                            src="{{ face_images.0.image.url }}"
-                            alt="{{ face_images.0.caption|default:panel.reference }}"
-                        >
+                        <img id="panel-main-image" class="panel-main-image" src="{{ face_images.0.image.url }}" alt="{{ face_images.0.caption|default:panel.reference }}">
 
                         <div class="panel-thumbnails">
                             {% for image in face_images %}
-                                <img
-                                    class="panel-thumbnail {% if forloop.first %}is-active{% endif %}"
-                                    src="{{ image.image.url }}"
-                                    data-full-src="{{ image.image.url }}"
-                                    data-alt="{{ image.caption|default:panel.reference }}"
-                                    alt="{{ image.caption|default:panel.reference }}"
-                                >
+                                <img class="panel-thumbnail {% if forloop.first %}is-active{% endif %}" src="{{ image.image.url }}" data-full-src="{{ image.image.url }}" data-alt="{{ image.caption|default:panel.reference }}" alt="{{ image.caption|default:panel.reference }}">
                             {% endfor %}
                         </div>
                     {% else %}
-                        {# --- Cas : Face sélectionnée SANS images --- #}
-                        <img
-                            id="panel-main-image"
-                            class="panel-main-image"
-                            src="{% static 'images/panel-placeholder.jpg' %}"
-                            alt="{{ panel.reference }}"
-                        >
+                        <img id="panel-main-image" class="panel-main-image" src="{% static 'images/panel-placeholder.jpg' %}" alt="{{ panel.reference }}">
 
                         <div class="panel-thumbnails">
-                            <img
-                                class="panel-thumbnail is-active"
-                                src="{% static 'images/panel-placeholder.jpg' %}"
-                                data-full-src="{% static 'images/panel-placeholder.jpg' %}"
-                                data-alt="{{ panel.reference }}"
-                                alt="{{ panel.reference }}"
-                            >
+                            <img class="panel-thumbnail is-active" src="{% static 'images/panel-placeholder.jpg' %}" data-full-src="{% static 'images/panel-placeholder.jpg' %}" data-alt="{{ panel.reference }}" alt="{{ panel.reference }}">
                         </div>
                     {% endif %}
                 {% endwith %}
             {% else %}
-                {# --- Cas : AUCUNE face sélectionnée --- #}
-                <img
-                    id="panel-main-image"
-                    class="panel-main-image"
-                    src="{% static 'images/panel-placeholder.jpg' %}"
-                    alt="{{ panel.reference }}"
-                >
+                <img id="panel-main-image" class="panel-main-image" src="{% static 'images/panel-placeholder.jpg' %}" alt="{{ panel.reference }}">
 
                 <div class="panel-thumbnails">
-                    <img
-                        class="panel-thumbnail is-active"
-                        src="{% static 'images/panel-placeholder.jpg' %}"
-                        data-full-src="{% static 'images/panel-placeholder.jpg' %}"
-                        data-alt="{{ panel.reference }}"
-                        alt="{{ panel.reference }}"
-                    >
+                    <img class="panel-thumbnail is-active" src="{% static 'images/panel-placeholder.jpg' %}" data-full-src="{% static 'images/panel-placeholder.jpg' %}" data-alt="{{ panel.reference }}" alt="{{ panel.reference }}">
                 </div>
             {% endif %}
-
-        </div>
-
-        <div class="panel-detail-sections">
-            <div class="content-card panel-tabs-card">
-                <h2 class="section-title" style="margin-top: 0;">Description du panneau</h2>
-                <p style="margin: 0;">
-                    {{ panel.description|default:"Aucune description fournie pour ce panneau." }}
-                </p>
-            </div>
-
-            <div class="detail-mini-grid">
-                <div class="detail-mini-box">
-                    <strong>Localisation</strong>
-                    <p class="muted" style="margin-bottom: 0;">
-                        {{ panel.geographic_unit.full_path|default:"—" }}
-                    </p>
-                </div>
-
-                <div class="detail-mini-box">
-                    <strong>Format</strong>
-                    <p class="muted" style="margin-bottom: 0;">
-                        {{ panel.formatted_dimensions }}
-                        {% if panel.area_sqm %} • {{ panel.area_sqm }} m²{% endif %}
-                    </p>
-                </div>
-
-                <div class="detail-mini-box">
-                    <strong>Carte</strong>
-                    <p class="muted" style="margin-bottom: 0;">
-                        {% if panel.google_maps_url %}
-                            <a href="{{ panel.google_maps_url }}" target="_blank" rel="noopener noreferrer">
-                                Voir sur la carte
-                            </a>
-                        {% else %}
-                            Non disponible
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
         </div>
     </div>
 
     <!-- COLONNE 2 : INFOS PANNEAU + SÉLECTEUR DE FACES -->
-    <div>
+    <div class="pd-col pd-col-info">
         <div class="content-card panel-info-card" style="margin-bottom: 18px;">
-            <h2 class="panel-detail-title">
-                {{ panel.title|default:panel.reference }}
-            </h2>
-            <p class="panel-detail-location">
-                {{ panel.geographic_unit.full_path|default:"—" }}
-            </p>
+            <h2 class="panel-detail-title">{{ panel.title|default:panel.reference }}</h2>
+            <p class="panel-detail-location">{{ panel.geographic_unit.full_path|default:"—" }}</p>
 
-            <div class="panel-kv-list">
-                <div class="panel-kv-item">
-                    <span>Régie</span>
-                    <strong>{{ panel.agency.name }}</strong>
+            <details class="pd-collapsible" id="pd-details-info">
+                <summary class="pd-collapsible-summary">Voir les détails du panneau</summary>
+
+                <p class="pd-description-text">
+                    {{ panel.description|default:"Aucune description fournie pour ce panneau." }}
+                </p>
+
+                <div class="panel-kv-list">
+                    <div class="panel-kv-item">
+                        <span>Régie</span>
+                        <strong>{{ panel.agency.name }}</strong>
+                    </div>
+                    <div class="panel-kv-item">
+                        <span>Localisation</span>
+                        <strong>{{ panel.geographic_unit.full_path|default:"—" }}</strong>
+                    </div>
+                    <div class="panel-kv-item">
+                        <span>Pays</span>
+                        <strong>{{ panel.get_country_display }}</strong>
+                    </div>
+                    <div class="panel-kv-item">
+                        <span>Catégorie</span>
+                        <strong>{{ panel.get_format_category_display }}</strong>
+                    </div>
+                    <div class="panel-kv-item">
+                        <span>Dimensions</span>
+                        <strong>{{ panel.formatted_dimensions }}</strong>
+                    </div>
+                    <div class="panel-kv-item">
+                        <span>Surface</span>
+                        <strong>{% if panel.area_sqm %}{{ panel.area_sqm }} m²{% else %}—{% endif %}</strong>
+                    </div>
+                    <div class="panel-kv-item">
+                        <span>Référence</span>
+                        <strong>{{ panel.reference }}</strong>
+                    </div>
+                    <div class="panel-kv-item">
+                        <span>Carte</span>
+                        <strong>
+                            {% if panel.google_maps_url %}
+                                <a href="{{ panel.google_maps_url }}" target="_blank" rel="noopener noreferrer">Voir sur la carte</a>
+                            {% else %}
+                                Non disponible
+                            {% endif %}
+                        </strong>
+                    </div>
                 </div>
-                <div class="panel-kv-item">
-                    <span>Pays</span>
-                    <strong>{{ panel.get_country_display }}</strong>
-                </div>
-                <div class="panel-kv-item">
-                    <span>Catégorie</span>
-                    <strong>{{ panel.get_format_category_display }}</strong>
-                </div>
-                <div class="panel-kv-item">
-                    <span>Dimensions</span>
-                    <strong>{{ panel.formatted_dimensions }}</strong>
-                </div>
-                <div class="panel-kv-item">
-                    <span>Surface</span>
-                    <strong>{% if panel.area_sqm %}{{ panel.area_sqm }} m²{% else %}—{% endif %}</strong>
-                </div>
-                <div class="panel-kv-item">
-                    <span>Référence</span>
-                    <strong>{{ panel.reference }}</strong>
-                </div>
-            </div>
+            </details>
         </div>
 
         <div class="content-card face-selector-card">
             <h2 class="section-title" style="margin-top: 0;">Faces disponibles</h2>
             {% if requested_start_date and requested_end_date %}
-                <div class="muted" style="margin-bottom: 8px;">
-                    Faces disponibles pour cette période :
-                </div>
+                <div class="muted" style="margin-bottom: 8px;">Faces disponibles pour cette période :</div>
             {% endif %}
             {% if faces %}
                 <div class="face-option-list">
                     {% for face in faces %}
-                        <a
-                            {% if is_private_catalog %}
-                                href="{% url 'private_agency_panel_detail' catalog_agency.slug panel.id %}?face={{ face.id }}{% if selected_start_date and selected_duration_months %}&start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}"
-                            {% else %}
-                                href="{% url 'public_panel_detail' panel.id %}?face={{ face.id }}{% if selected_start_date and selected_duration_months %}&start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}"
-                            {% endif %}
-                            class="face-option {% if selected_face and face.id == selected_face.id %}is-selected{% endif %}"
-                            style="text-decoration: none; color: inherit;"
-                        >
+                        {% if is_private_catalog %}
+                            <a href="{% url 'private_agency_panel_detail' catalog_agency.slug panel.id %}?face={{ face.id }}{% if selected_start_date and selected_duration_months %}&start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}" class="face-option {% if selected_face and face.id == selected_face.id %}is-selected{% endif %}" style="text-decoration: none; color: inherit;">
+                        {% else %}
+                            <a href="{% url 'public_panel_detail' panel.id %}?face={{ face.id }}{% if selected_start_date and selected_duration_months %}&start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}" class="face-option {% if selected_face and face.id == selected_face.id %}is-selected{% endif %}" style="text-decoration: none; color: inherit;">
+                        {% endif %}
                             <div class="face-option-head">
                                 <div class="face-option-title">Face {{ face.code }}</div>
                                 <span class="face-chip">{{ face.get_operational_status_display }}</span>
                             </div>
 
-                            <div class="face-option-meta">
-                                Orientation : {{ face.orientation|default:"—" }}
-                            </div>
+                            <div class="face-option-meta">Orientation : {{ face.orientation|default:"—" }}</div>
 
-                            <div class="face-option-meta" style="margin-top: 6px;">
-                                Prix mensuel : {{ face.monthly_price }}
-                            </div>
-
-                            <div class="face-option-meta" style="margin-top: 6px;">
-                                Images : {{ face.images.count }}
-                            </div>
+                            <div class="face-option-meta" style="margin-top: 6px;">Images : {{ face.images.count }}</div>
                         </a>
                     {% endfor %}
                 </div>
@@ -231,19 +143,12 @@
     </div>
 
     <!-- COLONNE 3 : RÉSUMÉ DE LA FACE SÉLECTIONNÉE -->
-    <div>
+    <div class="pd-col pd-col-summary">
         <div class="content-card face-summary-card">
             <p class="muted" style="margin-top: 0; margin-bottom: 6px;">Face sélectionnée</p>
 
             {% if selected_face %}
-                <h2 id="selected-face-title" class="panel-detail-title" style="margin-bottom: 0;">
-                    Face {{ selected_face.code }}
-                </h2>
-
-                <div id="selected-face-price" class="face-summary-price">
-                    {{ selected_face.monthly_price }}
-                </div>
-                <div class="face-summary-sub">Prix HT • location mensuelle</div>
+                <h2 id="selected-face-title" class="panel-detail-title" style="margin-bottom: 0;">Face {{ selected_face.code }}</h2>
 
                 <div class="panel-kv-list">
                     <div class="panel-kv-item">
@@ -268,34 +173,22 @@
                 </div>
 
                 <div style="margin-top: 16px;">
-                    <a
-                        class="btn accent"
-                        style="width: 100%; text-align: center;"
-                        href="{% url 'public_reservation_request' %}?panel={{ panel.id }}&face={{ selected_face.id }}{% if selected_start_date and selected_duration_months %}&start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}"
-                    >
+                    <a class="btn accent" style="width: 100%; text-align: center;" href="{% url 'public_reservation_request' %}?panel={{ panel.id }}&face={{ selected_face.id }}{% if selected_start_date and selected_duration_months %}&start_date={{ selected_start_date }}&duration_months={{ selected_duration_months }}{% endif %}">
                         Demander la face {{ selected_face.code }}
                     </a>
                 </div>
             {% else %}
                 <h2 class="panel-detail-title" style="margin-bottom: 0;">Aucune face disponible</h2>
-                <p class="muted" style="margin-top: 12px;">
-                    Ce panneau ne dispose actuellement d’aucune face réservable.
-                </p>
+                <p class="muted" style="margin-top: 12px;">Ce panneau ne dispose actuellement d’aucune face réservable.</p>
             {% endif %}
 
             <div style="margin-top: 25px;">
-                <a
-                    class="btn secondary"
-                    style="width: 100%; text-align: center;"
-                    href="{% url 'public_catalog' %}"
-                >
-                    Voir les autres panneaux
-                </a>
+                <a class="btn secondary" style="width: 100%; text-align: center;" href="{% url 'public_catalog' %}">Voir les autres panneaux</a>
             </div>
 
             <div class="face-summary-map">
                 {% if panel.google_maps_url %}
-                    <a href="{{ panel.google_maps_url }}" target="_blank" rel="noopener noreferrer">
+                    <a href="{{ panel.google_maps_url }}" target="_blank" rel="noopener noreferrer" class="btn secondary">
                         Voir sur la carte
                     </a>
                 {% else %}
@@ -324,6 +217,14 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+    if (window.matchMedia("(max-width: 1100px)").matches && window.location.search.includes("face=")) {
+        const gallery = document.getElementById("panel-gallery-anchor");
+        if (gallery) {
+            setTimeout(function () {
+                gallery.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 50);
+        }
+    }
 });
 </script>
 {% endblock %}

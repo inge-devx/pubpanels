@@ -28,7 +28,7 @@
 
 {% block backoffice_content %}
 <section class="panel-form-layout">
-    <div class="form-sections">
+    <div class="form-sections pf-col-form">
         <section class="form-card">
             <h2 class="form-section-title">Informations générales</h2>
 
@@ -231,27 +231,32 @@
         </section>
     </div>
 
-    <aside class="form-side-card">
-        <h2 class="form-section-title">Règles métier</h2>
+    <aside class="form-side-card pf-col-side">
+        <button type="button" class="pf-toggle-summary" id="pf-rules-toggle">
+            <span class="pf-toggle-icon" aria-hidden="true">&#9656;</span>
+            <span>Ce qu'il faut savoir avant de publier</span>
+        </button>
 
-        <div class="side-note">
-            Si un panneau n’est pas <strong>actif</strong>, il sera automatiquement retiré du catalogue public.
+        <div class="pf-toggle-body" id="pf-rules-body">
+            <div class="side-note">
+                Un panneau non <strong>actif</strong> disparaît automatiquement du catalogue public — inutile de le dépublier manuellement.
+            </div>
+
+            <ul class="detail-list">
+                <li>
+                    <strong>Actif</strong>
+                    Visible et réservable dans le catalogue, si le reste des informations est complet.
+                </li>
+                <li>
+                    <strong>Inactif</strong>
+                    Masqué automatiquement du catalogue public.
+                </li>
+                <li>
+                    <strong>Maintenance</strong>
+                    Masqué automatiquement, le temps de l'intervention.
+                </li>
+            </ul>
         </div>
-
-        <ul class="detail-list">
-            <li>
-                <strong>Actif</strong>
-                Peut rester publié si le reste des informations est cohérent.
-            </li>
-            <li>
-                <strong>Inactif</strong>
-                Sera automatiquement non publié.
-            </li>
-            <li>
-                <strong>Maintenance</strong>
-                Sera automatiquement non publié.
-            </li>
-        </ul>
 
         {% if panel %}
             <h2 class="form-section-title" style="margin-top: 22px;">Panneau en cours</h2>
@@ -325,5 +330,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+</script>
+<script>
+const toggle = document.getElementById("pf-rules-toggle");
+    const body = document.getElementById("pf-rules-body");
+
+    if (toggle && body) {
+        toggle.addEventListener("click", function () {
+            const isOpen = body.classList.toggle("is-open");
+            toggle.classList.toggle("is-open", isOpen);
+        });
+    }
 </script>
 {% endblock %}

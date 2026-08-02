@@ -248,6 +248,9 @@ input[type="submit"]:hover {
 
 .table-wrap {
     overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 table {
@@ -456,6 +459,7 @@ textarea {
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     padding: 20px;
+    overflow-x: hidden;
 }
 
 .info-card h2 {
@@ -610,7 +614,7 @@ textarea {
 
 .backoffice-nav-link {
     display: block;
-    padding: 12px 14px;
+    padding: 11px 14px;
     border-radius: 14px;
     color: #fff;
     background: transparent;
@@ -634,6 +638,57 @@ textarea {
     display: block;
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
+}
+
+.backoffice-nav-section {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.45);
+    padding: 14px 14px 2px 14px;
+}
+
+.backoffice-nav-section:first-child {
+    padding-top: 4px;
+}
+
+.backoffice-nav-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.backoffice-nav-link-flex {
+    flex: 1;
+    min-width: 0;
+}
+
+.backoffice-nav-plus {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.backoffice-nav-plus:hover {
+    background: rgba(63, 169, 245, 0.25);
+    text-decoration: none;
+}
+
+.backoffice-nav-external {
+    margin-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 18px;
 }
 
 .backoffice-main {
@@ -901,6 +956,9 @@ textarea {
 
 .table-wrap {
     overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 table {
@@ -1053,7 +1111,55 @@ table th:last-child {
     gap: 20px;
     align-items: start;
 }
+.qr-print-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+}
 
+.qr-print-area img {
+    display: block;
+    margin: 0 auto;
+}
+
+
+
+#qr-print-root {
+    display: none;
+}
+
+@media print {
+    body.is-printing-qr > *:not(#qr-print-root) {
+        display: none !important;
+    }
+
+    #qr-print-root {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    #qr-print-root img {
+        width: 180mm !important;
+        max-width: none !important;
+        height: auto !important;
+        display: block;
+    }
+
+    #qr-print-root p {
+        font-size: 18pt !important;
+        text-align: center;
+        margin-top: 10mm;
+    }
+}
 /* ===============================
    GALLERY
 ================================= */
@@ -1213,12 +1319,7 @@ table th:last-child {
     }
 }
 
-.panel-form-layout {
-    display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 20px;
-    align-items: start;
-}
+
 
 .form-card,
 .form-side-card {
@@ -1423,15 +1524,7 @@ table th:last-child {
     min-width: 110px;
 }
 
-@media (max-width: 980px) {
-    .panel-form-layout {
-        grid-template-columns: 1fr;
-    }
 
-    .form-field-grid {
-        grid-template-columns: 1fr;
-    }
-}
 
 .logout-form {
     margin: 0;
@@ -1531,6 +1624,15 @@ IMPORT DE PANNEAUX
     font-weight: 700;
     color: var(--muted);
     white-space: nowrap;
+}
+
+.raw-row-sticky {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+.raw-grid-scroll {
+    -webkit-overflow-scrolling: touch;
 }
 
 .face-slot {
@@ -1677,6 +1779,652 @@ IMPORT DE PANNEAUX
     .raw-field-row {
         grid-template-columns: 1fr;
         gap: 2px;
+    }
+}
+
+/* ===============================
+   MOBILE TOPBAR (drawer + profil)
+================================= */
+.mobile-topbar {
+    display: none;
+}
+
+.mobile-sidebar-overlay {
+    display: none;
+}
+
+@media (max-width: 1100px) {
+    .mobile-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 60;
+        background: #0d2236;
+        padding: 10px 14px;
+        height: 56px;
+        box-sizing: border-box;
+    }
+
+    .mobile-menu-toggle {
+        background: transparent;
+        border: none;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        cursor: pointer;
+        width: 36px;
+        height: 36px;
+    }
+
+    .mobile-menu-toggle span {
+        display: block;
+        width: 20px;
+        height: 2px;
+        background: #fff;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .mobile-menu-toggle.is-open span:nth-child(1) {
+        transform: translateY(6px) rotate(45deg);
+    }
+
+    .mobile-menu-toggle.is-open span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .mobile-menu-toggle.is-open span:nth-child(3) {
+        transform: translateY(-6px) rotate(-45deg);
+    }
+
+    .mobile-topbar-brand {
+        color: #fff;
+        font-weight: 800;
+        font-size: 17px;
+        flex: 1;
+        text-align: center;
+    }
+
+    .mobile-user-menu {
+        position: relative;
+    }
+
+    .mobile-user-avatar-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #0971B7 0%, #3FA9F5 100%);
+        color: #fff;
+        border: none;
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .mobile-user-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        padding: 14px;
+        width: 200px;
+        z-index: 70;
+    }
+
+    .mobile-user-dropdown-name {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--text);
+    }
+
+    .mobile-user-dropdown-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 10px;
+    }
+
+    .mobile-user-dropdown-logout {
+        width: 100%;
+        background: var(--surface-2);
+        color: var(--danger);
+        border: none;
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .mobile-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 39;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+    }
+
+    .mobile-sidebar-overlay.is-open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .backoffice-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: min(280px, 85vw);
+        z-index: 40;
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.22s ease;
+        box-shadow: 8px 0 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .backoffice-sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .backoffice-topbar-right {
+        display: none;
+    }
+}
+
+@media (min-width: 1101px) {
+    .backoffice-shell {
+        display: block;
+    }
+
+    .backoffice-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    .backoffice-main {
+        margin-left: 280px;
+    }
+}
+
+/* ===============================
+   FILTRE RÉTRACTABLE BACKOFFICE (mobile)
+================================= */
+.backoffice-filter-toggle {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .backoffice-filter-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 13px 16px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .backoffice-filter-toggle-icon {
+        transition: transform 0.15s ease;
+    }
+
+    .backoffice-filter-toggle.is-open .backoffice-filter-toggle-icon {
+        transform: rotate(180deg);
+    }
+
+    .backoffice-filter-desktop-title {
+        display: none;
+    }
+
+    #dashboard-filter-fields,
+    #panel-filter-fields {
+        display: none;
+        margin-top: 14px;
+    }
+
+    #dashboard-filter-fields.is-open,
+    #panel-filter-fields.is-open {
+        display: block;
+    }
+}
+
+/* ===============================
+   KPI GRID MOBILE
+================================= */
+@media (max-width: 640px) {
+    .kpi-grid,
+    .card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .metric-card {
+        padding: 12px;
+    }
+
+    .metric-card .label {
+        font-size: 12px;
+    }
+
+    .metric-card .value {
+        font-size: 20px;
+    }
+
+    .metric-card-wide {
+        grid-column: 1 / -1;
+    }
+}
+
+
+/* ===============================
+   PANEL FORM LAYOUT (panneau + face)
+================================= */
+.panel-form-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 980px) {
+    .panel-form-layout {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pf-col-side {
+        order: 1;
+        margin-bottom: 16px;
+    }
+
+    .pf-col-form {
+        order: 2;
+    }
+}
+
+/* ===============================
+   BLOC REPLIABLE (panneau concerné / règles)
+================================= */
+/* --- COMPOSANT : ACCORDÉON CONFIGURABLE --- */
+
+/* Style sur Ordinateur (Par défaut) : Aspect Titre, pas de bouton */
+.pf-toggle-summary {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 8px 0 !important; /* Pas de padding bouton */
+
+    /* Dissimulation complète du style bouton */
+    background: transparent !important;
+    color: var(--text) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important; /* Ligne de séparation élégante */
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    cursor: pointer;
+    text-align: left;
+    font-weight: bold;
+    font-size: 18px; /* Taille similaire à un h2 */
+}
+
+/* Survol sur PC : Changement discret de couleur du texte */
+.pf-toggle-summary:hover {
+    background: transparent !important;
+    color: var(--primary) !important;
+    text-decoration: none;
+}
+
+/* Flèche de l'accordéon */
+.pf-toggle-summary .pf-toggle-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    transform: rotate(0deg); /* Fermé par défaut */
+}
+
+/* Rotation de la flèche quand ouvert */
+.pf-toggle-summary.is-open .pf-toggle-icon {
+    transform: rotate(90deg) !important;
+}
+
+
+/* --- COMPORTEMENT SUR MOBILE --- */
+@media (max-width: 768px) {
+    .pf-toggle-summary {
+        /* On réactive le look bouton sur mobile pour une zone de clic facile (44px+) */
+        background-color: var(--secondary) !important;
+        color: #ffffff !important;
+        padding: 12px 16px !important;
+        border-radius: var(--radius-sm) !important;
+        border: none !important;
+        font-size: 14px;
+    }
+
+    .pf-toggle-summary:hover {
+        background-color: var(--primary-strong) !important;
+        color: #ffffff !important;
+    }
+
+    /* Couleur du bouton mobile quand ouvert */
+    .pf-toggle-summary.is-open {
+        background-color: var(--primary) !important;
+        color: #ffffff !important;
+    }
+}
+
+
+
+
+
+.pf-toggle-summary.is-open {
+    background-color: var(--primary);
+}
+
+.pf-toggle-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.pf-toggle-body {
+    display: block;
+    margin-top: 12px;
+}
+
+@media (max-width: 980px) {
+    .pf-toggle-icon {
+        transform: rotate(0deg);
+    }
+
+    .pf-toggle-summary.is-open .pf-toggle-icon {
+        transform: rotate(90deg);
+    }
+
+    /* 2. Le corps du panneau (Masqué par défaut partout, PC et mobile) */
+.pf-toggle-body {
+    display: none;
+}
+
+
+
+
+
+    .pf-toggle-body.is-open {
+        display: block !important;
+    }
+}
+
+.panel-form-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px; /* Le formulaire prend le reste, le côté prend 340px */
+    gap: 24px;
+    max-width: var(--container);
+    margin: 0 auto;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .panel-form-layout {
+        grid-template-columns: 1fr; /* Passe sur une seule colonne sur mobile */
+    }
+}
+
+/* --- COMPOSANT : FILTRE DÉPLIABLE --- */
+
+/* Style par défaut du bouton sur Ordinateur (Ressemble à un simple titre) */
+.filter-toggle-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent !important;
+    color: var(--text) !important;
+    border: none !important;
+    padding: 0 !important;
+    cursor: default; /* Pas de curseur main sur PC puisque c'est toujours ouvert */
+    text-align: left;
+}
+
+/* Cache la flèche par défaut sur Ordinateur */
+.filter-toggle-header .filter-toggle-icon {
+    display: none;
+}
+
+/* Le contenu du filtre est toujours visible sur Ordinateur */
+.filter-toggle-body {
+    display: block;
+}
+
+
+/* --- COMPORTEMENT SUR MOBILE UNIQUEMENT --- */
+@media (max-width: 768px) {
+    /* Le titre devient un vrai bouton bleu interactif */
+    .filter-toggle-header {
+        background-color: var(--primary) !important; /* Bleu clair */
+        color: #ffffff !important;
+        padding: 12px 16px !important;
+        border-radius: var(--radius-sm) !important;
+        cursor: pointer;
+    }
+
+    .filter-toggle-header .section-title {
+        color: #ffffff !important;
+        font-size: 16px !important;
+    }
+
+    /* Affiche la flèche sur mobile */
+    .filter-toggle-header .filter-toggle-icon {
+        display: inline-block;
+        transition: transform 0.2s ease;
+        transform: rotate(0deg); /* Pointe vers la droite */
+    }
+
+    /* Masque le contenu du filtre par défaut sur mobile */
+    .filter-toggle-body {
+        display: none;
+    }
+
+    /* --- ÉTATS INTERACTIFS AU CLIC (MOBILE) --- */
+    .filter-toggle-body.is-open {
+        display: block !important;
+    }
+
+    .filter-toggle-header.is-open {
+        background-color: var(--primary) !important; /* Devient bleu foncé si ouvert */
+    }
+
+    .filter-toggle-header.is-open .filter-toggle-icon {
+        transform: rotate(90deg) !important; /* La flèche pointe vers le bas */
+    }
+}
+
+
+/* --- ACCORDÉON D'AIDE SUR FORMULAIRE DE RÉSERVATION --- */
+
+/* Sur ordinateur : Aspect Titre/Texte discret (Comme vu précédemment) */
+#reservation-help-aside .pf-toggle-summary {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 8px 0 !important;
+    background: transparent !important;
+    color: var(--text) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+#reservation-help-aside .pf-toggle-summary:hover {
+    background: transparent !important;
+    color: var(--primary) !important;
+    text-decoration: none;
+}
+
+/* Comportement par défaut de la flèche sur ordinateur (Ouvert) */
+#reservation-help-aside .pf-toggle-summary .pf-toggle-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    transform: rotate(90deg);
+}
+
+#reservation-help-aside .pf-toggle-body {
+    display: block;
+}
+
+
+/* --- COMPORTEMENT RESPONSIVE (MOBILE) --- */
+@media (max-width: 768px) {
+    /* Remonte l'aside tout en haut du layout de formulaire */
+    .panel-form-layout {
+        display: flex;
+        flex-direction: column;
+    }
+
+    #reservation-help-aside {
+        order: -1; /* Force l'élément à se placer en première position */
+        margin-bottom: 20px; /* Espace par rapport au formulaire en dessous */
+
+        /* CORRECTION ICI : Force l'aside à s'étirer sur toute la largeur de l'écran */
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Redonne l'aspect bouton d'action bleu sur mobile */
+    #reservation-help-aside .pf-toggle-summary {
+        width: 100%; /* S'assure que le bouton remplit bien l'aside */
+        background-color: var(--secondary) !important;
+        color: #ffffff !important;
+        padding: 12px 16px !important;
+        border-radius: var(--radius-sm) !important;
+        border: none !important;
+        font-size: 14px;
+    }
+
+    #reservation-help-aside .pf-toggle-summary:hover {
+        background-color: var(--primary-strong) !important;
+        color: #ffffff !important;
+    }
+
+    /* Couleur du bouton ouvert sur mobile */
+    #reservation-help-aside .pf-toggle-summary.is-open {
+        background-color: var(--primary) !important;
+        color: #ffffff !important;
+    }
+
+    /* Masque le contenu par défaut sur mobile */
+    #reservation-help-aside .pf-toggle-body {
+        display: none;
+    }
+
+    /* Force la flèche fermée par défaut sur mobile */
+    #reservation-help-aside .pf-toggle-summary .pf-toggle-icon {
+        transform: rotate(0deg);
+    }
+
+    /* Ouverture au clic */
+    #reservation-help-aside .pf-toggle-body.is-open {
+        display: block !important;
+    }
+
+    #reservation-help-aside .pf-toggle-summary.is-open .pf-toggle-icon {
+        transform: rotate(90deg) !important;
+    }
+}
+
+/* --- COMPOSANT : FILTRE DE PÉRIODE DU DASHBOARD --- */
+
+/* Sur ordinateur (par défaut) : On cache le bouton, on montre le contenu */
+#dashboard-filter-toggle {
+    display: none;
+}
+
+#dashboard-filter-fields {
+    display: block;
+}
+
+.backoffice-filter-desktop-title {
+    display: block; /* Affiche le titre normal sur PC */
+}
+
+
+/* --- COMPORTEMENT RESPONSIVE (MOBILE) --- */
+@media (max-width: 768px) {
+    /* Cache le titre en doublon sur mobile pour laisser place au bouton */
+    .backoffice-filter-desktop-title {
+        display: none !important;
+    }
+
+    /* Le déclencheur devient le bouton bleu standardisé de l'application */
+    #dashboard-filter-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* Aligne le texte à gauche et la flèche à droite */
+        padding: 12px 16px !important;
+        background-color: var(--secondary) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: var(--radius-sm) !important;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    #dashboard-filter-toggle:hover {
+        background-color: var(--primary-strong) !important;
+    }
+
+    /* Changement de couleur du bouton quand le filtre est ouvert */
+    #dashboard-filter-toggle.is-open {
+        background-color: var(--primary) !important;
+    }
+
+    /* Gestion de la flèche sur mobile */
+    .backoffice-filter-toggle-icon {
+        display: inline-block;
+        transition: transform 0.2s ease;
+        transform: rotate(0deg); /* Pointe vers le bas ou le côté selon votre symbole */
+    }
+
+    /* Fait pivoter la flèche quand le menu s'ouvre */
+    #dashboard-filter-toggle.is-open .backoffice-filter-toggle-icon {
+        transform: rotate(180deg) !important;
+    }
+
+    /* Masque les champs du filtre par défaut sur mobile */
+    #dashboard-filter-fields {
+        display: none;
+        margin-top: 14px;
+    }
+
+    /* FORCE le déploiement au clic sur mobile grâce au JavaScript */
+    #dashboard-filter-fields.is-open {
+        display: block !important;
     }
 }
 

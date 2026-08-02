@@ -20,12 +20,48 @@
             Accédez à des panneaux visibles, comparez les options et lancez vos campagnes en toute simplicité.
         </p>
 
-        <a href="{% url 'public_catalog' %}" class="btn accent">
+        <a href="{% url 'public_catalog' %}" class="btn accent hero-cta-btn">
             Voir les panneaux disponibles
         </a>
     </div>
 </section>
 
+<!-- COMMENT ÇA MARCHE -->
+<section class="home-section">
+    <h2>Comment ça marche</h2>
+
+    <div class="steps-grid">
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-explore.png' %}">
+            <h3>Explorer</h3>
+            <p>Parcourez les panneaux selon votre zone et votre besoin.</p>
+        </div>
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-compare.png' %}">
+            <h3>Comparer</h3>
+            <p>Analysez les emplacements selon leur visibilité et leur localisation.</p>
+        </div>
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-reserve.png' %}">
+            <h3>Réserver</h3>
+            <p>Envoyez une demande en quelques clics.</p>
+        </div>
+
+        <div class="step-card">
+            <img src="{% static 'images/home/step-confirm.png' %}">
+            <h3>Confirmer</h3>
+            <p>Validez avec la régie et lancez votre campagne.</p>
+        </div>
+
+    </div>
+
+    <a href="{% url 'public_catalog' %}" class="btn accent" style="margin-top: 24px;">
+        Voir les panneaux disponibles
+    </a>
+</section>
 
 <!-- AVANTAGES -->
 <section class="home-section features-section">
@@ -92,44 +128,6 @@
         </div>
     </div>
 </section>
-
-
-
-
-<!-- COMMENT ÇA MARCHE -->
-<section class="home-section">
-    <h2>Comment ça marche</h2>
-
-    <div class="steps-grid">
-
-        <div class="step-card">
-            <img src="{% static 'images/home/step-explore.png' %}">
-            <h3>Explorer</h3>
-            <p>Parcourez les panneaux selon votre zone et votre besoin.</p>
-        </div>
-
-        <div class="step-card">
-            <img src="{% static 'images/home/step-compare.png' %}">
-            <h3>Comparer</h3>
-            <p>Analysez les emplacements selon leur visibilité et leur prix.</p>
-        </div>
-
-        <div class="step-card">
-            <img src="{% static 'images/home/step-reserve.png' %}">
-            <h3>Réserver</h3>
-            <p>Envoyez une demande en quelques clics.</p>
-        </div>
-
-        <div class="step-card">
-            <img src="{% static 'images/home/step-confirm.png' %}">
-            <h3>Confirmer</h3>
-            <p>Validez avec l’régie et lancez votre campagne.</p>
-        </div>
-
-    </div>
-</section>
-
-
 
 <!-- CTA -->
 <section class="home-cta">

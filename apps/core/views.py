@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from decimal import Decimal
 from django.utils import timezone as django_timezone
 
 from django.utils import timezone
@@ -37,7 +38,9 @@ from apps.agencies.models import Agency
 from apps.agencies.forms import AgencyForm, AgencyProfileForm
 
 from django.urls import reverse
+
 import qrcode
+import qrcode.image.svg
 import io
 
 
@@ -78,7 +81,6 @@ def get_agency_scoped_reservation_or_404(user, reservation_id):
 
     return get_object_or_404(queryset, pk=reservation_id, agency=user.agency)
 
-from decimal import Decimal
 
 def format_money(value):
     return f"{Decimal(value):.2f}"
@@ -90,7 +92,7 @@ def dashboard(request):
 
     if user.role == user.Role.SUPER_ADMIN:
         panels = Panel.objects.all()
-        reservations_base = Reservation.objects.select_related(
+        base_reservations = Reservation.objects.select_related(
             "agency",
             "panel_face__panel",
             "client",
@@ -98,7 +100,7 @@ def dashboard(request):
         panel_faces = PanelFace.objects.select_related("panel", "panel__agency").all()
     else:
         panels = Panel.objects.filter(agency=user.agency)
-        reservations_base = Reservation.objects.select_related(
+        base_reservations = Reservation.objects.select_related(
             "agency",
             "panel_face__panel",
             "client",
@@ -137,17 +139,30 @@ def dashboard(request):
     ):
         date_filter_error = "La date de début doit être inférieure ou égale à la date de fin."
 
-    reservations = reservations_base
+    # --- Indicateurs historiques : soumis au filtre de période (created_at) ---
+    period_reservations = base_reservations
     if date_filter_error is None:
         if filter_start_date:
-            reservations = reservations.filter(created_at__date__gte=filter_start_date)
+            period_reservations = period_reservations.filter(created_at__date__gte=filter_start_date)
         if filter_end_date:
-            reservations = reservations.filter(created_at__date__lte=filter_end_date)
+            period_reservations = period_reservations.filter(created_at__date__lte=filter_end_date)
 
-    active_reservations = reservations.filter(status=Reservation.Status.ACTIVE)
-    pending_reservations = reservations.filter(status=Reservation.Status.PENDING)
-    approved_reservations = reservations.filter(status=Reservation.Status.APPROVED)
-    completed_reservations = reservations.filter(status=Reservation.Status.COMPLETED)
+    recent_reservations = period_reservations.order_by("-created_at")[:5]
+
+    def sum_total_price(queryset):
+        total = queryset.aggregate(total=Sum("total_price"))["total"]
+        total = total or Decimal("0.00")
+        return total.quantize(Decimal("0.00"))
+
+    total_revenue = sum_total_price(
+        period_reservations.filter(status=Reservation.Status.COMPLETED)
+    )
+
+    # --- Indicateurs d'état présent : jamais soumis au filtre de période ---
+    active_reservations = base_reservations.filter(status=Reservation.Status.ACTIVE)
+    pending_reservations = base_reservations.filter(status=Reservation.Status.PENDING)
+    approved_reservations = base_reservations.filter(status=Reservation.Status.APPROVED)
+    completed_reservations = base_reservations.filter(status=Reservation.Status.COMPLETED)
 
     occupied_face_ids = active_reservations.values_list("panel_face_id", flat=True).distinct()
     occupied_faces_count = panel_faces.filter(id__in=occupied_face_ids).count()
@@ -158,32 +173,14 @@ def dashboard(request):
     if total_faces_count > 0:
         occupancy_rate = round((occupied_faces_count / total_faces_count) * 100, 2)
 
-    recent_reservations = reservations.order_by("-created_at")[:5]
-
     ending_soon_reservations = active_reservations.filter(
         end_date__gte=today,
         end_date__lte=upcoming_limit,
     ).order_by("end_date")[:10]
 
-    from decimal import Decimal
-
-    def sum_total_price(queryset):
-        total = queryset.aggregate(total=Sum("total_price"))["total"]
-        total = total or Decimal("0.00")
-        return total.quantize(Decimal("0.00"))
-
-    total_revenue = sum_total_price(reservations)
-    committed_revenue = sum_total_price(
-        reservations.filter(
-            status__in=[Reservation.Status.APPROVED, Reservation.Status.ACTIVE]
-        )
-    )
-    active_revenue = sum_total_price(active_reservations)
-    completed_revenue = sum_total_price(completed_reservations)
-
     context = {
         "panel_count": panels.count(),
-        "reservation_count": reservations.count(),
+        "reservation_count": period_reservations.count(),
         "pending_count": pending_reservations.count(),
         "approved_count": approved_reservations.count(),
         "active_count": active_reservations.count(),
@@ -198,16 +195,12 @@ def dashboard(request):
         "upcoming_limit": upcoming_limit,
 
         "total_revenue": total_revenue,
-        "committed_revenue": committed_revenue,
-        "active_revenue": active_revenue,
-        "completed_revenue": completed_revenue,
 
         "start_date": start_date_str,
         "end_date": end_date_str,
         "date_filter_error": date_filter_error,
     }
     return render(request, "core/dashboard.html", context)
-
 
 @login_required
 def action_center(request):
@@ -248,7 +241,43 @@ def panel_list(request):
     else:
         panels = Panel.objects.select_related("agency", "geographic_unit").filter(agency=user.agency)
 
-    return render(request, "core/panel_list.html", {"panels": panels})
+    search_reference = request.GET.get("q", "").strip()
+    selected_status = request.GET.get("status", "").strip()
+    selected_published = request.GET.get("published", "").strip()
+    selected_agency_id = request.GET.get("agency", "").strip()
+
+    if search_reference:
+        panels = panels.filter(reference__icontains=search_reference)
+
+    if selected_status:
+        panels = panels.filter(status=selected_status)
+
+    if selected_published == "yes":
+        panels = panels.filter(is_published=True)
+    elif selected_published == "no":
+        panels = panels.filter(is_published=False)
+
+    agencies_for_filter = None
+    if user.role == user.Role.SUPER_ADMIN:
+        if selected_agency_id:
+            panels = panels.filter(agency_id=selected_agency_id)
+        agencies_for_filter = Agency.objects.order_by("name")
+
+    active_filters_count = sum(
+        1 for v in [search_reference, selected_status, selected_published, selected_agency_id] if v
+    )
+
+    context = {
+        "panels": panels,
+        "search_reference": search_reference,
+        "selected_status": selected_status,
+        "selected_published": selected_published,
+        "selected_agency_id": selected_agency_id,
+        "agencies_for_filter": agencies_for_filter,
+        "status_choices": Panel.Status.choices,
+        "active_filters_count": active_filters_count,
+    }
+    return render(request, "core/panel_list.html", context)
 
 
 
@@ -257,13 +286,17 @@ def panel_detail(request, panel_id):
     panel = get_agency_scoped_panel_or_404(request.user, panel_id)
     return render(request, "core/panel_detail.html", {"panel": panel})
 
+
+def _build_qr_target_url(request, panel):
+    return request.build_absolute_uri(
+        reverse("private_agency_panel_detail", args=[panel.agency.slug, panel.id])
+    )
+
+
 @login_required
 def panel_qr_code_image(request, panel_id):
     panel = get_agency_scoped_panel_or_404(request.user, panel_id)
-
-    target_url = request.build_absolute_uri(
-        reverse("private_agency_panel_detail", args=[panel.agency.slug, panel.id])
-    )
+    target_url = _build_qr_target_url(request, panel)
 
     qr = qrcode.QRCode(
         version=None,
@@ -283,9 +316,99 @@ def panel_qr_code_image(request, panel_id):
 
 
 @login_required
-def panel_qr_print(request, panel_id):
+def panel_qr_code_download_png(request, panel_id):
     panel = get_agency_scoped_panel_or_404(request.user, panel_id)
-    return render(request, "core/panel_qr_print.html", {"panel": panel})
+    target_url = _build_qr_target_url(request, panel)
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=60,
+        border=4,
+    )
+    qr.add_data(target_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    response = HttpResponse(buffer.getvalue(), content_type="image/png")
+    response["Content-Disposition"] = f'attachment; filename="qr-{panel.reference}.png"'
+    return response
+
+
+@login_required
+def panel_qr_code_download_svg(request, panel_id):
+    panel = get_agency_scoped_panel_or_404(request.user, panel_id)
+    target_url = _build_qr_target_url(request, panel)
+
+    factory = qrcode.image.svg.SvgPathImage
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=20,
+        border=4,
+        image_factory=factory,
+    )
+    qr.add_data(target_url)
+    qr.make(fit=True)
+    img = qr.make_image()
+
+    buffer = io.BytesIO()
+    img.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(buffer.getvalue(), content_type="image/svg+xml")
+    response["Content-Disposition"] = f'attachment; filename="qr-{panel.reference}.svg"'
+    return response
+
+
+@login_required
+def panel_qr_code_download_pdf(request, panel_id):
+    panel = get_agency_scoped_panel_or_404(request.user, panel_id)
+    target_url = _build_qr_target_url(request, panel)
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=30,
+        border=4,
+    )
+    qr.add_data(target_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    img_buffer = io.BytesIO()
+    img.save(img_buffer, format="PNG")
+    img_buffer.seek(0)
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="qr-{panel.reference}.pdf"'
+
+    pdf = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    qr_size = min(width, height) - 100
+    x = (width - qr_size) / 2
+    y = height - qr_size - 80
+
+    pdf.drawImage(
+        ImageReader(img_buffer),
+        x, y,
+        width=qr_size,
+        height=qr_size,
+        preserveAspectRatio=True,
+        mask="auto",
+    )
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawCentredString(width / 2, y - 30, panel.reference)
+
+    pdf.showPage()
+    pdf.save()
+
+    return response
 
 
 @login_required
@@ -351,13 +474,22 @@ def panel_face_create(request, panel_id):
         form_data = request.POST.copy()
         form_data["panel"] = str(panel.id)
 
-        form = PanelFaceForm(form_data)
+        form = PanelFaceForm(form_data, request.FILES, panel=panel)
         if form.is_valid():
             face = form.save()
+
+            image_file = form.cleaned_data.get("image")
+            if image_file:
+                PanelFaceImage.objects.create(
+                    face=face,
+                    image=image_file,
+                    is_primary=True,
+                )
+
             messages.success(request, "Face créée avec succès.")
             return redirect("panel_face_detail", face_id=face.id)
     else:
-        form = PanelFaceForm(initial={"panel": panel})
+        form = PanelFaceForm(initial={"panel": panel}, panel=panel)
 
     return render(
         request,
@@ -385,13 +517,22 @@ def panel_face_update(request, face_id):
         form_data = request.POST.copy()
         form_data["panel"] = str(face.panel_id)
 
-        form = PanelFaceForm(form_data, instance=face)
+        form = PanelFaceForm(form_data, request.FILES, instance=face, panel=face.panel)
         if form.is_valid():
             face = form.save()
+
+            image_file = form.cleaned_data.get("image")
+            if image_file:
+                PanelFaceImage.objects.create(
+                    face=face,
+                    image=image_file,
+                    is_primary=not face.images.filter(is_primary=True).exists(),
+                )
+
             messages.success(request, "Face mise à jour avec succès.")
             return redirect("panel_face_detail", face_id=face.id)
     else:
-        form = PanelFaceForm(instance=face)
+        form = PanelFaceForm(instance=face, panel=face.panel)
 
     return render(
         request,

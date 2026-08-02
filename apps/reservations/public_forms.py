@@ -7,12 +7,39 @@ from apps.panels.models import PanelFace
 from .models import Client, Reservation
 from django.utils import timezone
 
+
 class PublicReservationRequestForm(forms.Form):
+    BUSINESS_SECTOR_CHOICES = [
+        ("", "Sélectionner un secteur"),
+        ("commerce_distribution", "Commerce / Distribution"),
+        ("agroalimentaire", "Agroalimentaire"),
+        ("restauration_hotellerie", "Restauration / Hôtellerie"),
+        ("telecoms_technologie", "Télécoms / Technologie"),
+        ("banque_finance_assurance", "Banque / Finance / Assurance"),
+        ("sante_pharmacie", "Santé / Pharmacie"),
+        ("education_formation", "Éducation / Formation"),
+        ("btp_immobilier", "BTP / Immobilier"),
+        ("transport_logistique", "Transport / Logistique"),
+        ("mode_beaute", "Mode / Beauté"),
+        ("ong_institutionnel", "ONG / Institutionnel"),
+        ("evenementiel_communication", "Événementiel / Communication"),
+        ("autre", "Autre"),
+    ]
+
     company_name = forms.CharField(max_length=150, required=False, label="Entreprise")
     contact_name = forms.CharField(max_length=150, label="Nom du contact")
     phone = forms.CharField(max_length=30, label="Téléphone")
     email = forms.EmailField(required=False, label="Email")
-    business_sector = forms.CharField(max_length=100, required=False, label="Secteur d'activité")
+    business_sector = forms.ChoiceField(
+        choices=BUSINESS_SECTOR_CHOICES,
+        required=False,
+        label="Secteur d'activité",
+    )
+    business_sector_other = forms.CharField(
+        max_length=100,
+        required=False,
+        label="Précisez votre secteur",
+    )
 
     panel_face = forms.ModelChoiceField(
         queryset=PanelFace.objects.none(),
@@ -98,6 +125,9 @@ class PublicReservationRequestForm(forms.Form):
         start_date = cleaned_data.get("start_date")
         duration_months = cleaned_data.get("duration_months")
 
+        if cleaned_data.get("business_sector") == "autre" and not cleaned_data.get("business_sector_other"):
+            self.add_error("business_sector_other", "Veuillez préciser votre secteur d'activité.")
+
         if start_date and start_date < timezone.localdate():
             self.add_error(
                 "start_date",
@@ -122,12 +152,20 @@ class PublicReservationRequestForm(forms.Form):
 
         return cleaned_data
 
+    def get_resolved_business_sector(self):
+        sector = self.cleaned_data.get("business_sector")
+        if not sector:
+            return ""
+        if sector == "autre":
+            return self.cleaned_data.get("business_sector_other", "").strip()
+        return dict(self.BUSINESS_SECTOR_CHOICES).get(sector, "")
+
     def get_or_create_client(self):
         company_name = self.cleaned_data["company_name"]
         contact_name = self.cleaned_data["contact_name"]
         phone = self.cleaned_data["phone"]
         email = self.cleaned_data["email"]
-        business_sector = self.cleaned_data["business_sector"]
+        business_sector = self.get_resolved_business_sector()
 
         panel_face = self.cleaned_data.get("panel_face")
         if not panel_face:
@@ -150,7 +188,6 @@ class PublicReservationRequestForm(forms.Form):
             if changed:
                 client.save()
             return client
-
 
         return Client.objects.create(
             agency=panel_face.panel.agency,

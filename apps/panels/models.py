@@ -1,8 +1,10 @@
+from django.contrib.gis.db import models
 from decimal import Decimal
 from django.utils import timezone
 
 from django.core.exceptions import ValidationError
-from django.db import models
+
+
 
 from apps.core.constants import COUNTRY_CHOICES
 
@@ -62,6 +64,9 @@ class Panel(models.Model):
         related_name="panels",
     )
     address = models.CharField(max_length=255, blank=True)
+
+    location = models.PointField(srid=4326, null=True, blank=True)
+
     latitude = models.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -114,8 +119,15 @@ class Panel(models.Model):
 
     @property
     def google_maps_url(self):
-        if self.latitude is not None and self.longitude is not None:
-            return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+        if self.location:
+            # Dans GeoDjango, location.y est TOUJOURS la Latitude
+            # et location.x est TOUJOURS la Longitude
+            lat = self.location.y
+            lng = self.location.x
+
+            # On génère une URL de recherche universelle Google Maps
+
+            return f"https://www.google.com/maps?q={lat},{lng}"
         return ""
 
     @property

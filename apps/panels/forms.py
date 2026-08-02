@@ -92,6 +92,12 @@ class PanelForm(forms.ModelForm):
 
 
 class PanelFaceForm(forms.ModelForm):
+    image = forms.ImageField(
+        required=False,
+        label="Image de la face (optionnel)",
+        help_text="Vous pourrez ajouter d'autres images plus tard depuis la fiche de la face.",
+    )
+
     class Meta:
         model = PanelFace
         fields = [
@@ -110,7 +116,7 @@ class PanelFaceForm(forms.ModelForm):
             "monthly_price": "Montant mensuel de location pour cette face.",
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, panel=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields["panel"].widget = forms.HiddenInput()
@@ -119,6 +125,21 @@ class PanelFaceForm(forms.ModelForm):
         self.fields["monthly_price"].label = "Prix mensuel"
         self.fields["operational_status"].label = "Statut opérationnel"
         self.fields["notes"].label = "Notes"
+
+        target_panel = panel or (self.instance.panel if self.instance.pk else None)
+
+        if target_panel is not None:
+            used_codes_qs = PanelFace.objects.filter(panel=target_panel)
+            if self.instance.pk:
+                used_codes_qs = used_codes_qs.exclude(pk=self.instance.pk)
+            used_codes = set(used_codes_qs.values_list("code", flat=True))
+
+            available_choices = [
+                (value, label)
+                for value, label in PanelFace.FaceCode.choices
+                if value not in used_codes
+            ]
+            self.fields["code"].choices = available_choices
 
 
 class PanelFaceImageForm(forms.ModelForm):

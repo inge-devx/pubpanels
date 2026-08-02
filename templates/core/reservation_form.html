@@ -219,37 +219,19 @@
         </section>
     </div>
 
-    <aside class="form-side-card">
-        <h2 class="form-section-title">Aide</h2>
+     <!-- Section d'aide modifiée -->
+    <aside class="form-side-card pf-col-side" id="reservation-help-aside">
+        <button type="button" class="pf-toggle-summary" data-toggle-target="reservation-help-body">
+            <span class="pf-toggle-icon" aria-hidden="true">▸</span>
+            <span>Aide à la saisie</span>
+        </button>
 
-        <div class="side-note">
-            La liste des faces se met à jour selon l’régie, la date de début et la durée choisie.
+        <div class="pf-toggle-body" id="reservation-help-body">
+            <div class="side-note" style="margin-top: 14px;">
+                <p><strong>Période :</strong> 1 mois commercial équivaut strictement à 30 jours dans le calcul automatique de la date de fin.</p>
+                <p style="margin-top: 8px;"><strong>Disponibilité :</strong> Assurez-vous que la face sélectionnée n'a pas de chevauchement de dates avec une réservation active.</p>
+            </div>
         </div>
-
-        <ul class="detail-list">
-            <li>
-                <strong>Régie</strong>
-                La face proposée dépend de l’régie sélectionnée.
-            </li>
-            <li>
-                <strong>Période</strong>
-                La disponibilité est recalculée à partir de la date de début et de la durée.
-            </li>
-            <li>
-                <strong>Montants</strong>
-                Le total est recalculé automatiquement à partir du prix mensuel et du nombre de mois.
-            </li>
-        </ul>
-
-        {% if reservation %}
-            <h2 class="form-section-title" style="margin-top: 22px;">Réservation en cours</h2>
-            <ul class="detail-list">
-                <li><strong>Référence</strong> #{{ reservation.id }}</li>
-                <li><strong>Statut</strong> {{ reservation.get_status_display }}</li>
-                <li><strong>Début</strong> {{ reservation.start_date }}</li>
-                <li><strong>Fin</strong> {{ reservation.end_date }}</li>
-            </ul>
-        {% endif %}
     </aside>
 </section>
 {% endblock %}
@@ -364,6 +346,29 @@ document.addEventListener("DOMContentLoaded", function () {
         loadPanelFaces(initialFaceId);
     } else {
         updateMonthlyPriceFromSelectedFace();
+    }
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggleBtn = document.querySelector('[data-toggle-target="reservation-help-body"]');
+    const body = document.getElementById("reservation-help-body");
+
+    if (toggleBtn && body) {
+        // État initial selon l'écran
+        if (window.innerWidth <= 768) {
+            toggleBtn.classList.remove("is-open");
+            body.classList.remove("is-open");
+        } else {
+            toggleBtn.classList.add("is-open");
+            body.classList.add("is-open");
+        }
+
+        toggleBtn.addEventListener("click", function () {
+            // Le comportement pliable complet est actif partout
+            const isOpen = body.classList.toggle("is-open");
+            toggleBtn.classList.toggle("is-open", isOpen);
+        });
     }
 });
 </script>

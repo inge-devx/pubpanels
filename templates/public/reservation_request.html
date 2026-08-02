@@ -66,9 +66,10 @@
                 <li><strong>Disponibilité :</strong> {{ selected_face.get_operational_status_display }}</li>
                 <li><strong>Images :</strong> {{ selected_face.images.count }}</li>
             </ul>
-
+            <!-- AFFICHAGE DE PRIX
             <div class="request-summary-price">{{ selected_face.monthly_price }}</div>
             <div class="request-summary-sub">Prix HT • location mensuelle</div>
+            -->
         {% else %}
             <p class="muted">
                 Aucune face n’a été présélectionnée.
@@ -157,6 +158,14 @@
                     {% endif %}
                 </p>
 
+                <p class="request-form-wide" id="business-sector-other-field">
+                    <label for="{{ form.business_sector_other.id_for_label }}">{{ form.business_sector_other.label }}</label>
+                    {{ form.business_sector_other }}
+                    {% if form.business_sector_other.errors %}
+                        <span class="form-help">{{ form.business_sector_other.errors.0 }}</span>
+                    {% endif %}
+                </p>
+
                 <p>
                     <label for="{{ form.start_date.id_for_label }}">Date de début *</label>
                     {{ form.start_date }}
@@ -209,4 +218,21 @@
         </form>
     </section>
 </section>
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const sectorField = document.getElementById("{{ form.business_sector.id_for_label }}");
+    const otherField = document.getElementById("business-sector-other-field");
+
+    function syncOtherField() {
+        otherField.style.display = sectorField.value === "autre" ? "" : "none";
+    }
+
+    if (sectorField && otherField) {
+        syncOtherField();
+        sectorField.addEventListener("change", syncOtherField);
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

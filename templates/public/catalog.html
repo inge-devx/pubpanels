@@ -10,12 +10,11 @@
             {% if is_private_catalog %}
                 Catalogue de {{ catalog_agency.name }}
             {% else %}
-                Trouvez un emplacement publicitaire
+                Un bon emplacement, une campagne réussit !
             {% endif %}
         </h1>
         <p class="muted">
-            Découvrez nos panneaux publiés et identifiez rapidement ceux qui disposent
-            d’au moins une face disponible pour votre campagne.
+            Trouvez le bon emplacement pour votre campagne et réservez en quelques clics.
         </p>
     </div>
 
@@ -35,93 +34,100 @@
 </section>
 
 <section class="filter-card catalog-filter-card">
-    <form method="get" id="catalog-filter-form">
-        {% if period_error %}
-            <ul class="messages" style="margin-bottom: 16px;">
-                <li>{{ period_error }}</li>
-            </ul>
-        {% endif %}
+    <button type="button" class="mobile-filter-toggle" id="mobile-filter-toggle">
+        <span>Filtrer les panneaux{% if active_filters_count %} ({{ active_filters_count }}){% endif %}</span>
+        <span class="mobile-filter-toggle-icon" aria-hidden="true">&#9662;</span>
+    </button>
 
-        <div class="catalog-filter-row">
-            <div class="catalog-filter-field">
-                <label>Localisation</label>
-                <div class="geo-popover" id="geo-popover" data-country="{{ selected_country }}" data-city="{{ selected_city }}">
-                    <button type="button" class="geo-popover-trigger" id="geo-popover-trigger">
-                        <span id="geo-popover-label">Toutes les localisations</span>
-                        <span aria-hidden="true">&#9662;</span>
-                    </button>
-                    <input type="hidden" name="country" id="id_country">
-                    <input type="hidden" name="city" id="id_city">
-                    <div class="geo-popover-panel" id="geo-popover-panel" hidden>
-                        <div class="geo-breadcrumb-readonly" id="geo-breadcrumb"></div>
-                        <div class="geo-levels" id="geo-levels"></div>
-                        <div class="geo-popover-footer">
-                            <button type="button" class="geo-clear-btn" id="geo-clear-btn">Effacer</button>
-                            <button type="button" class="geo-validate-btn" id="geo-validate-btn">Valider</button>
+    <form method="get" id="catalog-filter-form">
+        <div id="filter-fields-wrapper">
+            {% if period_error %}
+                <ul class="messages" style="margin-bottom: 16px;">
+                    <li>{{ period_error }}</li>
+                </ul>
+            {% endif %}
+
+            <div class="catalog-filter-row">
+                <div class="catalog-filter-field">
+                    <label>Localisation</label>
+                    <div class="geo-popover" id="geo-popover" data-country="{{ selected_country }}" data-city="{{ selected_city }}">
+                        <button type="button" class="geo-popover-trigger" id="geo-popover-trigger">
+                            <span id="geo-popover-label">Toutes les localisations</span>
+                            <span aria-hidden="true">&#9662;</span>
+                        </button>
+                        <input type="hidden" name="country" id="id_country">
+                        <input type="hidden" name="city" id="id_city">
+                        <div class="geo-popover-panel" id="geo-popover-panel" hidden>
+                            <div class="geo-breadcrumb-readonly" id="geo-breadcrumb"></div>
+                            <div class="geo-levels" id="geo-levels"></div>
+                            <div class="geo-popover-footer">
+                                <button type="button" class="geo-clear-btn" id="geo-clear-btn">Effacer</button>
+                                <button type="button" class="geo-validate-btn" id="geo-validate-btn">Valider</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {{ countries|json_script:"countries-data" }}
+                {{ countries|json_script:"countries-data" }}
 
-            {{ countries|json_script:"countries-data" }}
+                {{ countries|json_script:"countries-data" }}
 
-            {% if not is_private_catalog %}
+                {% if not is_private_catalog %}
+                    <div class="catalog-filter-field">
+                        <label for="id_agency">Régie</label>
+                        <select name="agency" id="id_agency">
+                            <option value="">Toutes les régies</option>
+                            {% for agency in agencies %}
+                                <option value="{{ agency.id }}" {% if selected_agency == agency.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ agency.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
                 <div class="catalog-filter-field">
-                    <label for="id_agency">Régie</label>
-                    <select name="agency" id="id_agency">
-                        <option value="">Toutes les régies</option>
-                        {% for agency in agencies %}
-                            <option value="{{ agency.id }}" {% if selected_agency == agency.id|stringformat:"s" %}selected{% endif %}>
-                                {{ agency.name }}
+                    <label for="id_format_category">Format</label>
+                    <select name="format_category" id="id_format_category">
+                        <option value="">Tous les formats</option>
+                        {% for value, label in format_categories %}
+                            <option value="{{ value }}" {% if selected_format_category == value %}selected{% endif %}>
+                                {{ label }}
                             </option>
                         {% endfor %}
                     </select>
                 </div>
-            {% endif %}
 
-            <div class="catalog-filter-field">
-                <label for="id_format_category">Format</label>
-                <select name="format_category" id="id_format_category">
-                    <option value="">Tous les formats</option>
-                    {% for value, label in format_categories %}
-                        <option value="{{ value }}" {% if selected_format_category == value %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+                <div class="catalog-filter-field">
+                    <label for="id_start_date">Date de début souhaitée</label>
+                    <input
+                        type="date"
+                        name="start_date"
+                        id="id_start_date"
+                        value="{{ selected_start_date }}"
+                    >
+                </div>
 
-            <div class="catalog-filter-field">
-                <label for="id_start_date">Date de début souhaitée</label>
-                <input
-                    type="date"
-                    name="start_date"
-                    id="id_start_date"
-                    value="{{ selected_start_date }}"
-                >
-            </div>
+                <div class="catalog-filter-field">
+                    <label for="id_duration_months">Durée</label>
+                    <select name="duration_months" id="id_duration_months">
+                        <option value="">Sans durée</option>
+                        <option value="1" {% if selected_duration_months == "1" %}selected{% endif %}>1 mois</option>
+                        <option value="2" {% if selected_duration_months == "2" %}selected{% endif %}>2 mois</option>
+                        <option value="3" {% if selected_duration_months == "3" %}selected{% endif %}>3 mois</option>
+                        <option value="6" {% if selected_duration_months == "6" %}selected{% endif %}>6 mois</option>
+                        <option value="12" {% if selected_duration_months == "12" %}selected{% endif %}>12 mois</option>
+                    </select>
+                </div>
 
-            <div class="catalog-filter-field">
-                <label for="id_duration_months">Durée</label>
-                <select name="duration_months" id="id_duration_months">
-                    <option value="">Sans durée</option>
-                    <option value="1" {% if selected_duration_months == "1" %}selected{% endif %}>1 mois</option>
-                    <option value="2" {% if selected_duration_months == "2" %}selected{% endif %}>2 mois</option>
-                    <option value="3" {% if selected_duration_months == "3" %}selected{% endif %}>3 mois</option>
-                    <option value="6" {% if selected_duration_months == "6" %}selected{% endif %}>6 mois</option>
-                    <option value="12" {% if selected_duration_months == "12" %}selected{% endif %}>12 mois</option>
-                </select>
-            </div>
-
-            <div class="catalog-filter-field">
-                <label>&nbsp;</label>
-                {% if is_private_catalog %}
-                    <a class="btn secondary" href="{% url 'private_agency_catalog' catalog_agency.slug %}">Réinitialiser</a>
-                {% else %}
-                    <a class="btn secondary" href="{% url 'public_catalog' %}">Réinitialiser</a>
-                {% endif %}
+                <div class="catalog-filter-field">
+                    <label>&nbsp;</label>
+                    {% if is_private_catalog %}
+                        <a class="btn secondary" href="{% url 'private_agency_catalog' catalog_agency.slug %}">Réinitialiser</a>
+                    {% else %}
+                        <a class="btn secondary" href="{% url 'public_catalog' %}">Réinitialiser</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </form>
@@ -191,7 +197,7 @@
                             <span>{{ panel.area_sqm }} m²</span>
                         {% endif %}
                     </div>
-
+                    <!-- AFFICHAGE DE PRIX
                     <p class="panel-card-price">
                         À partir de
                         <strong>
@@ -203,6 +209,7 @@
                         </strong>
                         / mois
                     </p>
+                    -->
 
                     <p class="panel-card-links">
                         {% if is_private_catalog %}
@@ -300,6 +307,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (formatCategoryField) formatCategoryField.addEventListener("change", submitFilters);
     if (startDateField) startDateField.addEventListener("change", submitFilters);
     if (durationMonthsField) durationMonthsField.addEventListener("change", submitFilters);
+    const mobileToggle = document.getElementById("mobile-filter-toggle");
+    const fieldsWrapper = document.getElementById("filter-fields-wrapper");
+
+    if (mobileToggle && fieldsWrapper) {
+        mobileToggle.addEventListener("click", function () {
+            const isOpen = fieldsWrapper.classList.toggle("is-open");
+            mobileToggle.classList.toggle("is-open", isOpen);
+        });
+    }
 });
 </script>
 {% endblock %}

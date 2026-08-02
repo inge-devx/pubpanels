@@ -18,6 +18,61 @@
 {% endblock %}
 
 {% block backoffice_content %}
+<section class="content-card backoffice-filter-card">
+    <button type="button" class="backoffice-filter-toggle" id="panel-filter-toggle">
+        <span>Filtrer{% if active_filters_count %} ({{ active_filters_count }}){% endif %}</span>
+        <span class="backoffice-filter-toggle-icon" aria-hidden="true">&#9662;</span>
+    </button>
+
+    <div id="panel-filter-fields">
+        <form method="get" class="backoffice-filter-row">
+            <div class="backoffice-filter-field">
+                <label for="id_q">Référence</label>
+                <input type="text" name="q" id="id_q" value="{{ search_reference }}" placeholder="Ex : BF-001">
+            </div>
+
+            <div class="backoffice-filter-field">
+                <label for="id_status">Statut</label>
+                <select name="status" id="id_status">
+                    <option value="">Tous les statuts</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="backoffice-filter-field">
+                <label for="id_published">Publication</label>
+                <select name="published" id="id_published">
+                    <option value="">Toutes</option>
+                    <option value="yes" {% if selected_published == "yes" %}selected{% endif %}>Publié</option>
+                    <option value="no" {% if selected_published == "no" %}selected{% endif %}>Non publié</option>
+                </select>
+            </div>
+
+            {% if agencies_for_filter %}
+                <div class="backoffice-filter-field">
+                    <label for="id_agency">Régie</label>
+                    <select name="agency" id="id_agency">
+                        <option value="">Toutes les régies</option>
+                        {% for agency in agencies_for_filter %}
+                            <option value="{{ agency.id }}" {% if selected_agency_id == agency.id|stringformat:"s" %}selected{% endif %}>{{ agency.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+
+            <div class="backoffice-filter-field">
+                <label>&nbsp;</label>
+                <div class="actions-row" style="margin-bottom: 0;">
+                    <button type="submit">Filtrer</button>
+                    <a class="btn secondary" href="{% url 'panel_list' %}">Réinitialiser</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
 <section class="content-card">
     <div class="table-toolbar">
         <h2 class="section-title" style="margin: 0;">Panneaux</h2>
@@ -73,7 +128,23 @@
             </table>
         </div>
     {% else %}
-        <p class="muted">Aucun panneau trouvé.</p>
+        <p class="muted">Aucun panneau ne correspond à ces critères.</p>
     {% endif %}
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.getElementById("panel-filter-toggle");
+    const fields = document.getElementById("panel-filter-fields");
+
+    if (toggle && fields) {
+        toggle.addEventListener("click", function () {
+            const isOpen = fields.classList.toggle("is-open");
+            toggle.classList.toggle("is-open", isOpen);
+        });
+    }
+});
+</script>
 {% endblock %}

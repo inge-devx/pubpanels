@@ -21,7 +21,7 @@
 
 {% block backoffice_content %}
 <section class="panel-form-layout">
-    <div class="form-sections">
+    <div class="form-sections pf-col-form">
         <section class="form-card">
             <h2 class="form-section-title">Configuration de la face</h2>
 
@@ -33,7 +33,7 @@
                 </ul>
             {% endif %}
 
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
 
                 <div style="display: none;">
@@ -107,6 +107,15 @@
                     </div>
                 </div>
 
+                <div class="form-field form-field-wide">
+                        <label for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
+                        {{ form.image }}
+                        <div class="field-help">{{ form.image.help_text }}</div>
+                        {% if form.image.errors %}
+                            <div class="field-error">{{ form.image.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
                 <div class="actions-row" style="margin-top: 18px;">
                     <button type="submit" class="btn accent">{{ submit_label }}</button>
                     <a class="btn secondary" href="{% url 'panel_detail' panel.id %}">Annuler</a>
@@ -115,20 +124,39 @@
         </section>
     </div>
 
-    <aside class="form-side-card">
-        <h2 class="form-section-title">Panneau concerné</h2>
+    <aside class="form-side-card pf-col-side">
+        <button type="button" class="pf-toggle-summary" id="pff-panel-toggle">
+            <span class="pf-toggle-icon" aria-hidden="true">&#9656;</span>
+            <span>Panneau concerné</span>
+        </button>
 
-        <ul class="detail-list">
-            <li><strong>Référence</strong> {{ panel.reference }}</li>
-            <li><strong>Nom</strong> {{ panel.title|default:"—" }}</li>
-            <li><strong>Régie</strong> {{ panel.agency.name }}</li>
-            <li><strong>Ville</strong> {{ panel.geographic_unit.full_path }}</li>
-            <li><strong>Statut panneau</strong> {{ panel.get_status_display }}</li>
-        </ul>
+        <div class="pf-toggle-body" id="pff-panel-body">
+            <ul class="detail-list">
+                <li><strong>Référence</strong> {{ panel.reference }}</li>
+                <li><strong>Nom</strong> {{ panel.title|default:"—" }}</li>
+                <li><strong>Régie</strong> {{ panel.agency.name }}</li>
+                <li><strong>Ville</strong> {{ panel.geographic_unit.full_path }}</li>
+                <li><strong>Statut panneau</strong> {{ panel.get_status_display }}</li>
+            </ul>
 
-        <div class="side-note" style="margin-top: 18px;">
-            La face est l’unité réellement réservable. Son prix et son statut opérationnel doivent donc être exacts.
+            <div class="side-note" style="margin-top: 18px;">
+                La face est l’unité réellement réservable. Son prix et son statut opérationnel doivent donc être exacts.
+            </div>
         </div>
     </aside>
 </section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.getElementById("pff-panel-toggle");
+    const body = document.getElementById("pff-panel-body");
+
+    if (toggle && body) {
+        toggle.addEventListener("click", function () {
+            const isOpen = body.classList.toggle("is-open");
+            toggle.classList.toggle("is-open", isOpen);
+        });
+    }
+});
+</script>
 {% endblock %}

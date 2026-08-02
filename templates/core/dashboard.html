@@ -20,38 +20,46 @@
 
 {% block backoffice_content %}
 <section class="content-card">
-    <h2 class="section-title" style="margin-top: 0;">Filtre de période</h2>
-    <p class="muted">
-        Les indicateurs ci-dessous sont filtrés sur la date de création des réservations.
-    </p>
+    <button type="button" class="backoffice-filter-toggle" id="dashboard-filter-toggle">
+        <span>Filtre de période{% if start_date or end_date %} (actif){% endif %}</span>
+        <span class="backoffice-filter-toggle-icon" aria-hidden="true">&#9662;</span>
+    </button>
 
-    {% if date_filter_error %}
-        <ul class="messages">
-            <li>{{ date_filter_error }}</li>
-        </ul>
-    {% endif %}
+    <div id="dashboard-filter-fields">
+        <h2 class="section-title backoffice-filter-desktop-title" style="margin-top: 0;">Filtre de période</h2>
+        <p class="muted">
+            Seuls le nombre de réservations créées, l'activité récente et le CA sont filtrés sur cette période.
+            L'occupation des faces et les réservations à traiter reflètent toujours l'état actuel.
+        </p>
 
-    <form method="get">
-        <div class="form-grid">
-            <p>
-                <label for="id_start_date">Date début</label>
-                <input type="date" name="start_date" id="id_start_date" value="{{ start_date }}">
-            </p>
+        {% if date_filter_error %}
+            <ul class="messages">
+                <li>{{ date_filter_error }}</li>
+            </ul>
+        {% endif %}
 
-            <p>
-                <label for="id_end_date">Date fin</label>
-                <input type="date" name="end_date" id="id_end_date" value="{{ end_date }}">
-            </p>
-        </div>
+        <form method="get">
+            <div class="form-grid">
+                <p>
+                    <label for="id_start_date">Date début</label>
+                    <input type="date" name="start_date" id="id_start_date" value="{{ start_date }}">
+                </p>
 
-        <div class="actions-row">
-            <button type="submit">Appliquer</button>
-            <a class="btn secondary" href="{% url 'dashboard' %}">Réinitialiser</a>
-        </div>
-    </form>
+                <p>
+                    <label for="id_end_date">Date fin</label>
+                    <input type="date" name="end_date" id="id_end_date" value="{{ end_date }}">
+                </p>
+            </div>
+
+            <div class="actions-row">
+                <button type="submit">Appliquer</button>
+                <a class="btn secondary" href="{% url 'dashboard' %}">Réinitialiser</a>
+            </div>
+        </form>
+    </div>
 </section>
 
-<section class="card-grid">
+<section class="card-grid kpi-grid">
     <div class="metric-card">
         <div class="label">Panneaux</div>
         <div class="value">{{ panel_count }}</div>
@@ -77,8 +85,8 @@
         <div class="value">{{ occupancy_rate }}%</div>
     </div>
 
-    <div class="metric-card">
-        <div class="label">CA total</div>
+    <div class="metric-card metric-card-wide">
+        <div class="label">CA encaissé (réservations terminées)</div>
         <div class="value">{{ total_revenue }}</div>
     </div>
 </section>
@@ -206,3 +214,29 @@
     {% endif %}
 </section>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.getElementById("dashboard-filter-toggle");
+    const fields = document.getElementById("dashboard-filter-fields");
+
+    if (toggle && fields) {
+        // Initialisation propre de l'état selon l'écran de l'utilisateur
+        if (window.innerWidth <= 768) {
+            toggle.classList.remove("is-open");
+            fields.classList.remove("is-open");
+        } else {
+            toggle.classList.add("is-open");
+            fields.classList.add("is-open");
+        }
+
+        toggle.addEventListener("click", function () {
+            const isOpen = fields.classList.toggle("is-open");
+            toggle.classList.toggle("is-open", isOpen);
+        });
+    }
+});
+</script>
+{% endblock %}
+

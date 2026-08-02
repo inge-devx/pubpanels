@@ -15,9 +15,7 @@
     <div class="actions-row" style="margin-bottom: 0;">
         <a class="btn secondary" href="{% url 'panel_list' %}">Retour à la liste</a>
         <a class="btn" href="{% url 'panel_update' panel.id %}">Modifier</a>
-        <a class="btn" href="{% url 'panel_qr_print' panel.id %}" target="_blank" rel="noopener noreferrer">
-            QR Code à imprimer
-        </a>
+        <button type="button" class="btn" id="qr-open-btn">QR Code</button>
         <a class="btn" href="{% url 'panel_face_create' panel.id %}">Créer une face</a>
         <a class="btn accent" href="{% url 'public_panel_detail' panel.id %}" target="_blank" rel="noopener noreferrer">
             Voir côté public
@@ -47,11 +45,6 @@
                 </div>
 
                 <div class="kv-item">
-                    <span class="kv-label">Pays</span>
-                    <span class="kv-value">{{ panel.get_country_display }}</span>
-                </div>
-
-                <div class="kv-item">
                     <span class="kv-label">Ville</span>
                     <span class="kv-value">{{ panel.geographic_unit.root.name }}</span>
                 </div>
@@ -60,44 +53,56 @@
                     <span class="kv-label">Quartier</span>
                     <span class="kv-value">{{ panel.geographic_unit.path_below_root|default:"—" }}</span>
                 </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Adresse</span>
-                    <span class="kv-value">{{ panel.address|default:"—" }}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Catégorie</span>
-                    <span class="kv-value">{{ panel.get_format_category_display }}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Dimensions</span>
-                    <span class="kv-value">{{ panel.formatted_dimensions }}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Surface</span>
-                    <span class="kv-value">{% if panel.area_sqm %}{{ panel.area_sqm }} m²{% else %}—{% endif %}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Latitude</span>
-                    <span class="kv-value">{{ panel.latitude|default:"—" }}</span>
-                </div>
-
-                <div class="kv-item">
-                    <span class="kv-label">Longitude</span>
-                    <span class="kv-value">{{ panel.longitude|default:"—" }}</span>
-                </div>
             </div>
+
+            <details class="pd-collapsible" style="margin-top: 12px;">
+                <summary class="pd-collapsible-summary">Voir plus de détails</summary>
+                <div class="kv-grid" style="margin-top: 12px;">
+                    <div class="kv-item">
+                        <span class="kv-label">Pays</span>
+                        <span class="kv-value">{{ panel.get_country_display }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Adresse</span>
+                        <span class="kv-value">{{ panel.address|default:"—" }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Catégorie</span>
+                        <span class="kv-value">{{ panel.get_format_category_display }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Dimensions</span>
+                        <span class="kv-value">{{ panel.formatted_dimensions }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Surface</span>
+                        <span class="kv-value">{% if panel.area_sqm %}{{ panel.area_sqm }} m²{% else %}—{% endif %}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Latitude</span>
+                        <span class="kv-value">{{ panel.latitude|default:"—" }}</span>
+                    </div>
+
+                    <div class="kv-item">
+                        <span class="kv-label">Longitude</span>
+                        <span class="kv-value">{{ panel.longitude|default:"—" }}</span>
+                    </div>
+                </div>
+            </details>
         </section>
 
         <section class="info-card">
-            <h2>Description</h2>
-            <p style="margin-bottom: 0;">
-                {{ panel.description|default:"Aucune description fournie pour ce panneau." }}
-            </p>
+            <details class="pd-collapsible">
+                <summary class="pd-collapsible-summary" style="font-size: 18px; padding: 0;">Description</summary>
+                <p style="margin: 12px 0 0;">
+                    {{ panel.description|default:"Aucune description fournie pour ce panneau." }}
+                </p>
+            </details>
         </section>
 
         <section class="info-card">
@@ -201,4 +206,80 @@
         </div>
     </aside>
 </section>
+{% block extra_scripts %}
+<div class="modal-overlay" id="qr-modal-overlay" hidden>
+    <div class="modal-box">
+        <h3 class="modal-title">QR Code — {{ panel.reference }}</h3>
+        <p class="muted" style="margin-top: 0;">
+            À coller sur le panneau physique. Pour une impression grand format (vinyle),
+            utilisez le fichier SVG avec votre imprimeur.
+        </p>
+
+        <div class="qr-print-area">
+            <img src="{% url 'panel_qr_code_image' panel.id %}" alt="QR Code {{ panel.reference }}" style="width: 100%; max-width: 280px;">
+            <p style="font-weight: 700; margin-top: 8px;">{{ panel.reference }}</p>
+        </div>
+
+        <div class="modal-actions" style="flex-wrap: wrap; justify-content: center;">
+            <button type="button" class="btn accent" id="qr-print-btn">Imprimer</button>
+            <a class="btn secondary" href="{% url 'panel_qr_code_download_svg' panel.id %}">SVG (vinyle)</a>
+            <a class="btn secondary" href="{% url 'panel_qr_code_download_png' panel.id %}">PNG</a>
+            <a class="btn secondary" href="{% url 'panel_qr_code_download_pdf' panel.id %}">PDF</a>
+            <button type="button" class="btn secondary" id="qr-close-btn">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const openBtn = document.getElementById("qr-open-btn");
+    const closeBtn = document.getElementById("qr-close-btn");
+    const printBtn = document.getElementById("qr-print-btn");
+    const overlay = document.getElementById("qr-modal-overlay");
+
+    if (openBtn && !openBtn.dataset.bound) {
+        openBtn.dataset.bound = "true";
+        openBtn.addEventListener("click", function () { overlay.hidden = false; });
+    }
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.dataset.bound = "true";
+        closeBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            overlay.hidden = true;
+        });
+    }
+    if (printBtn && !printBtn.dataset.bound) {
+        printBtn.dataset.bound = "true";
+        printBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const sourceImg = document.querySelector(".qr-print-area img");
+            const sourceLabel = document.querySelector(".qr-print-area p");
+
+            const printRoot = document.createElement("div");
+            printRoot.id = "qr-print-root";
+
+            const img = sourceImg.cloneNode(true);
+            const label = sourceLabel.cloneNode(true);
+            printRoot.appendChild(img);
+            printRoot.appendChild(label);
+
+            document.body.appendChild(printRoot);
+            document.body.classList.add("is-printing-qr");
+
+            window.print();
+
+            document.body.classList.remove("is-printing-qr");
+            printRoot.remove();
+        });
+    }
+    if (overlay && !overlay.dataset.bound) {
+        overlay.dataset.bound = "true";
+        overlay.addEventListener("click", function (e) {
+            if (e.target === overlay) overlay.hidden = true;
+        });
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

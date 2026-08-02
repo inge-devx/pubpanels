@@ -32,7 +32,9 @@ from .views import (
     panel_import_cancel,
 
     panel_qr_code_image,
-    panel_qr_print,
+    panel_qr_code_download_pdf,
+    panel_qr_code_download_png,
+    panel_qr_code_download_svg,
 
     reservation_change_status,
     reservation_interrupt,
@@ -89,7 +91,9 @@ urlpatterns = [
     path("panels/import/<int:batch_id>/cancel/", panel_import_cancel, name="panel_import_cancel"),
 
     path("panels/<int:panel_id>/qr-code.png", panel_qr_code_image, name="panel_qr_code_image"),
-    path("panels/<int:panel_id>/qr-print/", panel_qr_print, name="panel_qr_print"),
+    path("panels/<int:panel_id>/qr-code/download.pdf", panel_qr_code_download_pdf, name="panel_qr_code_download_pdf"),
+    path("panels/<int:panel_id>/qr-code/download.png", panel_qr_code_download_png, name="panel_qr_code_download_png"),
+    path("panels/<int:panel_id>/qr-code/download.svg", panel_qr_code_download_svg, name="panel_qr_code_download_svg"),
 
     path("faces/<int:face_id>/edit/", panel_face_update, name="panel_face_update"),
     path("faces/<int:face_id>/images/create/", panel_face_image_create, name="panel_face_image_create"),

@@ -10,7 +10,7 @@
         <h1 class="success-title">Demande envoyée avec succès</h1>
 
         <p class="success-text">
-            Votre demande de réservation a bien été transmise à l’régie concernée.
+            Votre demande de réservation a bien été transmise à la régie concernée.
             Elle sera étudiée puis confirmée ou refusée après vérification de la disponibilité réelle
             de la face demandée sur la période souhaitée.
         </p>
@@ -18,7 +18,7 @@
         <div class="success-info-grid">
             <div class="success-info-box">
                 <strong>Étape suivante</strong>
-                <span>L’régie va examiner votre demande et vérifier la disponibilité finale.</span>
+                <span>La régie va examiner votre demande et vérifier la disponibilité finale.</span>
             </div>
 
             <div class="success-info-box">
@@ -33,7 +33,11 @@
         </div>
 
         <div class="success-actions">
-            <a class="btn accent" href="{% url 'public_catalog' %}">Retour au catalogue</a>
+            {% if confined_agency %}
+                <a class="btn accent" href="{% url 'private_agency_catalog' confined_agency.slug %}">Retour au catalogue</a>
+            {% else %}
+                <a class="btn accent" href="{% url 'public_catalog' %}">Retour au catalogue</a>
+            {% endif %}
         </div>
     </div>
 </section>

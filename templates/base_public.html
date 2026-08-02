@@ -13,7 +13,13 @@
     </div>
 
     <div class="topbar-links">
-        <a class="public-nav-link is-active" href="{% url 'public_catalog' %}">Catalogue</a>
+        {% if confined_agency %}
+            <a class="public-nav-link is-active" href="{% url 'private_agency_catalog' confined_agency.slug %}">
+                Catalogue {{ confined_agency.name }}
+            </a>
+        {% else %}
+            <a class="public-nav-link is-active" href="{% url 'public_catalog' %}">Catalogue</a>
+        {% endif %}
     </div>
 </header>
 
