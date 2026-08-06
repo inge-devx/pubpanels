@@ -87,19 +87,31 @@ DATABASES = {
 
 # Validation des mots de passe
 AUTH_PASSWORD_VALIDATORS = [
+    # 1. Vérifie la similarité avec l'identifiant, le nom ou l'email
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
+    # 2. Durcit la longueur minimale (10 caractères recommandés pour le B2B)
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 10,
+        }
     },
+    # 3. Interdit la liste des 20 000 mots de passe les plus courants
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
+    # 4. Interdit les mots de passe composés uniquement de chiffres
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    # 5. 🆕 AJOUT : Force la complexité (Majuscule, Chiffre, Caractère spécial)
+    {
+        'NAME': 'apps.users.validators.ComplexityPasswordValidator',
     },
 ]
+
 
 # Internationalisation
 LANGUAGE_CODE = "fr-fr"
@@ -163,6 +175,31 @@ LOGOUT_REDIRECT_URL = "home"
 # Email configuration (MVP)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@pubpanels.local"
+
+# --- SÉCURISATION ET BRIDAGE DES SESSIONS ---
+
+# 1. Fermer la session dès que l'utilisateur ferme son navigateur
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# 2. Durée d'inactivité maximale (ex: 30 minutes = 1800 secondes)
+# Si l'utilisateur ne fait rien pendant 30 min, Django détruit la session
+SESSION_COOKIE_AGE = 1800
+
+# 3. Renouveler la session à chaque clic
+# Si l'utilisateur clique, ses 30 minutes de sursis recommencent à zéro
+SESSION_SAVE_EVERY_REQUEST = True
+
+# 1. Interdit au JavaScript de lire le cookie de session (Anti-XSS)
+SESSION_COOKIE_HTTPONLY = True
+
+# 2. Force le cookie à ne voyager que sur des connexions cryptées HTTPS
+SESSION_COOKIE_SECURE = True
+
+# 3. Empêche l'envoi du cookie lors de clics depuis des sites externes
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Configuration des bibliothèques géographiques (Spécifique Windows)
 import os

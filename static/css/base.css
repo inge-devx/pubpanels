@@ -2355,76 +2355,61 @@ IMPORT DE PANNEAUX
         transform: rotate(90deg) !important;
     }
 }
-
-/* --- COMPOSANT : FILTRE DE PÉRIODE DU DASHBOARD --- */
-
-/* Sur ordinateur (par défaut) : On cache le bouton, on montre le contenu */
-#dashboard-filter-toggle {
-    display: none;
-}
-
-#dashboard-filter-fields {
-    display: block;
-}
-
-.backoffice-filter-desktop-title {
-    display: block; /* Affiche le titre normal sur PC */
-}
-
-
-/* --- COMPORTEMENT RESPONSIVE (MOBILE) --- */
+/* ==========================================================================
+   🎯 CORRECTIF CHIRURGICAL - LIBÉRATION DU BLOCAGE DE LARGEUR
+   ========================================================================== */
 @media (max-width: 768px) {
-    /* Cache le titre en doublon sur mobile pour laisser place au bouton */
-    .backoffice-filter-desktop-title {
-        display: none !important;
+    /* 1. On force la structure globale à accepter de rétrécir sur mobile */
+    .backoffice-main-content,
+    .backoffice-content-wrapper,
+    main,
+    #main-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important; /* Débloque la rigidité Flexbox de Django/CSS */
+        display: block !important; /* Annule temporairement le grid/flex desktop */
+        padding: 10px !important;
+        box-sizing: border-box;
     }
 
-    /* Le déclencheur devient le bouton bleu standardisé de l'application */
-    #dashboard-filter-toggle {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between; /* Aligne le texte à gauche et la flèche à droite */
-        padding: 12px 16px !important;
-        background-color: var(--secondary) !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: var(--radius-sm) !important;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 14px;
+    /* 2. On brise la largeur fixe de 1004px du conteneur de l'équipe */
+    .management-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        padding: 0 !important; /* Évite de rajouter des marges superflues */
+        display: block !important; /* On s'assure qu'il n'est pas en flex */
+        box-sizing: border-box;
     }
 
-    #dashboard-filter-toggle:hover {
-        background-color: var(--primary-strong) !important;
+    /* 3. On force la barre d'outils à s'empiler verticalement sur mobile */
+    .management-container .toolbar {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        box-sizing: border-box;
     }
 
-    /* Changement de couleur du bouton quand le filtre est ouvert */
-    #dashboard-filter-toggle.is-open {
-        background-color: var(--primary) !important;
+    /* On aligne les éléments de la toolbar à 100% de l'écran mobile */
+    .management-container .filter-zone,
+    .management-container .action-zone,
+    .management-container .action-zone .btn {
+        width: 100% !important;
+        box-sizing: border-box;
     }
 
-    /* Gestion de la flèche sur mobile */
-    .backoffice-filter-toggle-icon {
-        display: inline-block;
-        transition: transform 0.2s ease;
-        transform: rotate(0deg); /* Pointe vers le bas ou le côté selon votre symbole */
-    }
-
-    /* Fait pivoter la flèche quand le menu s'ouvre */
-    #dashboard-filter-toggle.is-open .backoffice-filter-toggle-icon {
-        transform: rotate(180deg) !important;
-    }
-
-    /* Masque les champs du filtre par défaut sur mobile */
-    #dashboard-filter-fields {
-        display: none;
-        margin-top: 14px;
-    }
-
-    /* FORCE le déploiement au clic sur mobile grâce au JavaScript */
-    #dashboard-filter-fields.is-open {
+    /* 4. Maintenant que les parents font bien la largeur du smartphone, */
+    /* la boîte responsive va enfin pouvoir activer son scroll de sécurité ! */
+    .table-responsive-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
         display: block !important;
+        overflow-x: auto !important; /* Le scroll apparaît ENFIN ici */
+        -webkit-overflow-scrolling: touch !important;
     }
 }
+
 

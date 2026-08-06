@@ -1,17 +1,28 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from glob import escape
+
 from django.utils import timezone as django_timezone
 
 from django.utils import timezone
 from reportlab.lib.utils import ImageReader
-
-
-
+import qrcode
+import qrcode.image.svg
+import io
+from django.urls import reverse
+from django.db.models import Count, Max, Q
+from django.http import HttpResponse, Http404
+from django.views.generic import ListView, CreateView
+from django.urls import reverse_lazy
+from django.views import View
+from django.views.generic import UpdateView
+from django.core.exceptions import PermissionDenied
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
-from django.http import Http404, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.geography.models import GeographicUnit, GeographicLevel
@@ -26,22 +37,22 @@ from apps.reservations.notifications import send_client_reservation_status_notif
 from apps.reservations.models import ReservationTaxLine
 from apps.reservations.forms_tax_lines import ReservationTaxLineForm
 
-from django.db.models import Count, Max, Q
 from apps.reservations.models import Client
 from apps.reservations.forms_clients import ClientForm
 
-from django.http import HttpResponse, Http404
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 from apps.agencies.models import Agency
 from apps.agencies.forms import AgencyForm, AgencyProfileForm
 
-from django.urls import reverse
 
-import qrcode
-import qrcode.image.svg
-import io
+from apps.users.models import User
+from apps.users.forms import UserRegistrationForm, UserUpdateForm, UserProfileForm
+
+from django.contrib.auth.forms import PasswordResetForm
+
 
 
 def home(request):
@@ -1514,6 +1525,146 @@ def client_update(request, client_id):
         },
     )
 
+class UserListView(LoginRequiredMixin, ListView):
+    model = User
+    template_name = "core/user_list.html"
+    context_object_name = "users"
+
+    def get_queryset(self):
+        user = self.request.user
+        # 🔒 PROTECTION 1 : Le Super Admin voit tout le monde
+        if user.role == User.Role.SUPER_ADMIN:
+            queryset = User.objects.all().select_related('agency')
+            # Application du filtre par régie si sélectionné dans le menu déroulant
+            agency_id = self.request.GET.get('agency_filter')
+            if agency_id:
+                queryset = queryset.filter(agency_id=agency_id)
+            return queryset
+
+        # 🔒 PROTECTION 2 : L'Admin d'agence ne voit QUE les membres de sa propre régie
+        elif user.role == User.Role.AGENCY_ADMIN:
+            return User.objects.filter(agency_id=user.agency_id).select_related('agency')
+
+        # Les managers ou autres rôles n'ont aucun accès
+        return User.objects.none()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Permet au Super Admin d'alimenter son filtre HTML avec la liste des régies
+        if self.request.user.role == User.Role.SUPER_ADMIN:
+            context['agencies'] = Agency.objects.all()
+            context['selected_agency'] = self.request.GET.get('agency_filter', '')
+        return context
+# 1. Action rapide : Activer / Désactiver un utilisateur
+class UserToggleStatusView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        target_user = get_object_or_404(User, pk=pk)
+        current_user = request.user
+
+        # 🔒 PROTECTION : Vérification des permissions de modification
+        if current_user.role == User.Role.AGENCY_ADMIN and target_user.agency_id != current_user.agency_id:
+            raise PermissionDenied("Vous ne pouvez pas modifier un membre d'une autre régie.")
+        if current_user.role not in [User.Role.SUPER_ADMIN, User.Role.AGENCY_ADMIN]:
+            raise PermissionDenied()
+
+        # Interdire de se désactiver soi-même
+        if target_user == current_user:
+            return redirect('user_list')
+
+        # Inverse le statut actif
+        target_user.is_active = not target_user.is_active
+        target_user.save()
+        return redirect('user_list')
+
+# 2. Action rapide : Modifier un collaborateur
+class UserUpdateView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = UserUpdateForm
+    template_name = "core/user_form.html"
+    success_url = reverse_lazy('user_list')
+
+    # 🔒 LE CORRECTIF : Empêche Django d'écraser la session de l'admin dans le template
+    context_object_name = "edited_user"
+
+    def dispatch(self, request, *args, **kwargs):
+        target_user = self.get_object()
+        current_user = request.user
+
+        if current_user.role == User.Role.AGENCY_ADMIN and target_user.agency_id != current_user.agency_id:
+            raise PermissionDenied("Vous ne pouvez pas modifier un membre d'une autre régie.")
+        if current_user.role not in [User.Role.SUPER_ADMIN, User.Role.AGENCY_ADMIN]:
+            raise PermissionDenied()
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['current_user'] = self.request.user
+        return kwargs
+
+
+# 🔄 MISE À JOUR DE LA VUE DE CRÉATION (Success URL modifié)
+class UserCreateView(LoginRequiredMixin, CreateView):
+    model = User
+    form_class = UserRegistrationForm
+    template_name = "core/user_form.html"
+    # Redirige maintenant vers la liste après soumission réussie
+    success_url = reverse_lazy('user_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in [User.Role.SUPER_ADMIN, User.Role.AGENCY_ADMIN]:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['current_user'] = self.request.user
+        return kwargs
+
+
+class UserResetPasswordTriggerView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        target_user = get_object_or_404(User, pk=pk)
+        current_user = request.user
+
+        # 🔒 PROTECTION : Vérification du cloisonnement des régies
+        if current_user.role == User.Role.AGENCY_ADMIN and target_user.agency_id != current_user.agency_id:
+            raise PermissionDenied("Vous ne pouvez pas réinitialiser le mot de passe d'un membre d'une autre régie.")
+        if current_user.role not in [User.Role.SUPER_ADMIN, User.Role.AGENCY_ADMIN]:
+            raise PermissionDenied()
+
+        # Utilisation du formulaire natif de Django pour générer le token et envoyer le mail
+        form = PasswordResetForm({'email': target_user.email})
+        if form.is_valid():
+            # request=request permet à Django de détecter le bon domaine (ex: pubpanels.com) pour le lien du mail
+            form.save(
+                request=request,
+                use_https=request.is_secure(),
+                email_template_name='registration/password_reset_email.html', # Template du contenu du mail
+                subject_template_name='registration/password_reset_subject.txt' # Template du sujet du mail
+            )
+            messages.success(request, f"Un e-mail de réinitialisation sécurisé a été envoyé à {target_user.email}.")
+        else:
+            messages.error(request, "Impossible de générer le lien de réinitialisation.")
+
+        return redirect('user_list')
+
+
+class SelfProfileUpdateView(LoginRequiredMixin, UpdateView):
+    form_class = UserProfileForm
+    template_name = "core/my_profile.html" # 🔄 Utilisation d'un template sur-mesure
+    success_url = "/backoffice/dashboard/"
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_valid(self, form):
+        messages.success(self.request, "Votre profil a été mis à jour avec succès.")
+        return super().form_valid(form)
+
+
+
 def is_super_admin(user):
     return user.is_authenticated and user.role == user.Role.SUPER_ADMIN
 
@@ -1628,7 +1779,6 @@ def reservation_invoice_pdf(request, reservation_id):
         Reservation.Status.COMPLETED,
         Reservation.Status.INTERRUPTED,
     }
-
     if reservation.status not in allowed_statuses:
         raise Http404("Document non disponible pour ce statut.")
 
@@ -1733,13 +1883,13 @@ def reservation_invoice_pdf(request, reservation_id):
     y -= 18
 
     pdf.setFont("Helvetica", 10)
-    pdf.drawString(margin_x, y, f"Contact : {client.contact_name}")
+    pdf.drawString(margin_x, y, f"Contact : {escape(client.contact_name)}")
     y -= 15
-    pdf.drawString(margin_x, y, f"Entreprise : {client.company_name or '—'}")
+    pdf.drawString(margin_x, y, f"Entreprise : {escape(client.company_name or '—')}")
     y -= 15
-    pdf.drawString(margin_x, y, f"Téléphone : {client.phone}")
+    pdf.drawString(margin_x, y, f"Téléphone : {escape(client.phone)}")
     y -= 15
-    pdf.drawString(margin_x, y, f"Email : {client.email or '—'}")
+    pdf.drawString(margin_x, y, f"Email : {escape(client.email or '—')}")
 
     y -= 35
 

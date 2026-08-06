@@ -47,6 +47,13 @@ from .views import (
     reservation_tax_line_update,
     reservation_tax_line_delete,
 
+    UserListView,
+    UserCreateView,
+    UserToggleStatusView,
+    UserUpdateView,
+    UserResetPasswordTriggerView,
+    SelfProfileUpdateView,
+
     client_list,
     client_detail,
     client_create,
@@ -133,6 +140,14 @@ urlpatterns = [
     path("api/panel-faces/", panel_faces_by_agency_api, name="panel_faces_by_agency_api"),
     path("api/geographic-units/", geographic_units_api, name="geographic_units_api"),
     path("api/geographic-unit-chain/", geographic_unit_chain_api, name="geographic_unit_chain_api"),
+
+    path("backoffice/users/", UserListView.as_view(), name="user_list"),
+    path("backoffice/users/create/", UserCreateView.as_view(), name="user_create"),
+    path("backoffice/users/<int:pk>/toggle/", UserToggleStatusView.as_view(), name="user_toggle_status"),
+    path("backoffice/users/<int:pk>/edit/", UserUpdateView.as_view(), name="user_edit"),
+    path("backoffice/users/<int:pk>/reset-password/", UserResetPasswordTriggerView.as_view(),
+         name="user_reset_password_trigger"),
+    path("backoffice/my-profile/", SelfProfileUpdateView.as_view(), name="my_profile"),
 
     path("clients/", client_list, name="client_list"),
     path("clients/create/", client_create, name="client_create"),

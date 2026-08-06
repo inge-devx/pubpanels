@@ -1,0 +1,51 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}
+    {% if edited_user.id %}Modifier le collaborateur - PubPanels{% else %}Créer un collaborateur - PubPanels{% endif %}
+{% endblock %}
+
+{% block backoffice_page_title %}Équipe{% endblock %}
+
+{% block backoffice_breadcrumb %}
+    Backoffice / Gestion d'équipe / {% if edited_user.id %}Modification de {{ edited_user.username }}{% else %}Création{% endif %}
+{% endblock %}
+
+{% block backoffice_content_title %}
+    {% if edited_user.id %}Modifier les accès de {{ edited_user.first_name }} {{ edited_user.last_name }}{% else %}Ajouter un collaborateur{% endif %}
+{% endblock %}
+
+{% block backoffice_content %}
+<section class="content-card" style="max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <form method="post" class="form-grid" style="display: flex; flex-direction: column; gap: 16px;">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="messages" style="background: var(--danger, #dc3545); color: white; padding: 10px; border-radius: 8px;">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        {% for field in form %}
+            <div class="form-field" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+                <label for="{{ field.id_for_label }}" style="font-weight: bold; font-size: 14px; color: #333;">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <small class="muted" style="color: #666; font-size: 12px; line-height: 1.4;">{{ field.help_text }}</small>
+                {% endif %}
+                {% if field.errors %}
+                    <span class="field-error" style="color: var(--danger, #dc3545); font-size: 13px; font-weight: 500;">{{ field.errors.0 }}</span>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="actions-row" style="margin-top: 12px; display: flex; gap: 12px;">
+            <button type="submit" class="btn" style="background: var(--primary, #0044cc); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                {% if edited_user.id %}💾 Enregistrer les modifications{% else %}🚀 Créer le compte{% endif %}
+            </button>
+            <a href="{% url 'user_list' %}" class="btn secondary" style="background: #f1f3f5; color: #495057; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-flex; align-items: center;">
+                Annuler
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}

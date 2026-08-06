@@ -81,26 +81,49 @@ class ReservationForm(forms.ModelForm):
         start_date = cleaned_data.get("start_date")
         duration_months = cleaned_data.get("duration_months")
         monthly_price = cleaned_data.get("monthly_price")
-        total_price = cleaned_data.get("total_price")
+
+        # 🔒 SÉCURITÉ 1 : On force l'agence de la réservation à être celle de l'utilisateur connecté
+        # (Pour éviter qu'un commercial ne soumette une réservation au nom d'une autre agence)
+        if self.user and self.user.role != User.Role.SUPER_ADMIN:
+            agency = self.user.agency
+            cleaned_data["agency"] = agency
 
         if agency and panel_face and panel_face.panel.agency_id != agency.id:
-            self.add_error("panel_face", "La face sélectionnée n’appartient pas à l’agence choisie.")
+            self.add_error("panel_face", "La face sélectionnée n’appartient pas à votre agence.")
 
+        # --- Le reste de votre validation existante reste inchangé ---
         if start_date and start_date < timezone.localdate():
-            self.add_error(
-                "start_date",
-                "La date de début ne peut pas être antérieure à aujourd’hui.",
-            )
+            self.add_error("start_date", "La date de début ne peut pas être antérieure à aujourd’hui.")
 
         if start_date and duration_months:
             cleaned_data["end_date"] = start_date + timedelta(days=(30 * duration_months) - 1)
+            end_date = cleaned_data["end_date"]
 
-        if panel_face and monthly_price in (None, ""):
-            cleaned_data["monthly_price"] = panel_face.monthly_price
-            monthly_price = cleaned_data["monthly_price"]
+            # 🔒 PROTECTION : Détection des chevauchements de dates
+            if panel_face:
+                # On cherche s'il existe des réservations actives (non annulées/rejetées) sur cette même face et cette période
+                conflits = Reservation.objects.filter(
+                    panel_face=panel_face,
+                    start_date__lte=end_date,
+                    end_date__ge=start_date
+                ).exclude(
+                    status__in=["rejected", "cancelled"]  # On exclut les réservations abandonnées
+                )
 
-        if monthly_price not in (None, "") and duration_months and total_price in (None, ""):
-            cleaned_data["total_price"] = monthly_price * duration_months
+                if conflits.exists():
+                    self.add_error(
+                        "start_date",
+                        "Ce panneau est déjà réservé sur tout ou partie de la période sélectionnée."
+                    )
+
+        if panel_face:
+            if monthly_price in (None, ""):
+                cleaned_data["monthly_price"] = panel_face.monthly_price
+            else:
+                cleaned_data["monthly_price"] = monthly_price
+
+            if duration_months:
+                cleaned_data["total_price"] = cleaned_data["monthly_price"] * duration_months
 
         return cleaned_data
 
@@ -186,23 +209,47 @@ class ReservationUpdateForm(forms.ModelForm):
         duration_months = cleaned_data.get("duration_months")
         panel_face = cleaned_data.get("panel_face")
         monthly_price = cleaned_data.get("monthly_price")
-        total_price = cleaned_data.get("total_price")
 
+        # 🔒 SÉCURITÉ 2 : Empêcher la modification si la face appartient à un concurrent
+        if self.user and self.user.role != User.Role.SUPER_ADMIN:
+            if panel_face and panel_face.panel.agency_id != self.user.agency_id:
+                self.add_error("panel_face", "Vous n'avez pas l'autorisation d'assigner un panneau d'une autre agence.")
+
+        # --- Le reste de votre validation existante reste inchangé ---
         if start_date and start_date < timezone.localdate():
-            self.add_error(
-                "start_date",
-                "La date de début ne peut pas être antérieure à aujourd’hui.",
-            )
+            self.add_error("start_date", "La date de début ne peut pas être antérieure à aujourd’hui.")
 
         if start_date and duration_months:
             cleaned_data["end_date"] = start_date + timedelta(days=(30 * duration_months) - 1)
+            end_date = cleaned_data["end_date"]
 
-        if panel_face and monthly_price in (None, ""):
-            cleaned_data["monthly_price"] = panel_face.monthly_price
-            monthly_price = cleaned_data["monthly_price"]
+            # 🔒 PROTECTION : Détection des chevauchements pour la mise à jour
+            if panel_face and self.instance.pk:
+                conflits = Reservation.objects.filter(
+                    panel_face=panel_face,
+                    start_date__lte=end_date,
+                    end_date__ge=start_date
+                ).exclude(
+                    pk=self.instance.pk  # ⚠️ CRUCIAL : On exclut la réservation en cours de modification
+                ).exclude(
+                    status__in=["rejected", "cancelled"]
+                )
 
-        if monthly_price not in (None, "") and duration_months and total_price in (None, ""):
-            cleaned_data["total_price"] = monthly_price * duration_months
+                if conflits.exists():
+                    self.add_error(
+                        "start_date",
+                        "Ce panneau est déjà réservé sur tout ou partie de la période sélectionnée."
+                    )
+
+
+        if panel_face:
+            if monthly_price in (None, ""):
+                cleaned_data["monthly_price"] = panel_face.monthly_price
+            else:
+                cleaned_data["monthly_price"] = monthly_price
+
+            if duration_months:
+                cleaned_data["total_price"] = cleaned_data["monthly_price"] * duration_months
 
         return cleaned_data
 

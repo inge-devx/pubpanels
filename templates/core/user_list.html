@@ -1,0 +1,97 @@
+{% extends "base_backoffice.html" %}
+
+{% block title %}Gestion d'équipe - PubPanels{% endblock %}
+{% block backoffice_page_title %}Équipe{% endblock %}
+{% block backoffice_breadcrumb %}Backoffice / Gestion d'équipe{% endblock %}
+{% block backoffice_content_title %}Membres de l'équipe{% endblock %}
+
+{% block backoffice_content %}
+<!-- 🧼 NETTOYAGE : Suppression du display:flex en ligne qui bloquait le responsive parent -->
+<div class="management-container" style="padding: 20px;">
+
+    <!-- Barre d'outils supérieure (Filtre + Bouton d'action) -->
+    <!-- 🧼 CORRECTION : flex-wrap au lieu de wrap -->
+    <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+        <!-- ... Votre zone de filtre et bouton d'action restent identiques ... -->
+        <div class="filter-zone">
+            {% if request.user.role == "SUPER_ADMIN" %}
+                <form method="get" id="filterForm" style="display: flex; align-items: center; gap: 10px;">
+                    <label for="agency_filter" style="font-weight: bold; font-size: 14px;">Filtrer par régie :</label>
+                    <select name="agency_filter" id="agency_filter" onchange="document.getElementById('filterForm').submit();" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc;">
+                        <option value="">Toutes les régies</option>
+                        {% for agency in agencies %}
+                            <option value="{{ agency.id }}" {% if selected_agency == agency.id|stringformat:"i" %}selected{% endif %}>
+                                {{ agency.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            {% endif %}
+        </div>
+        <div class="action-zone">
+            <a href="{% url 'user_create' %}" class="btn primary-btn" style="background: var(--primary); color: white; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
+                <span>➕</span> Inviter un collaborateur
+            </a>
+        </div>
+    </div>
+
+    <!-- 📱 LE CADRE DE CORRECTION : On isole techniquement le tableau dans une boîte étanche -->
+    <div class="table-responsive-wrapper" style="width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+
+        <!-- 🧼 CORRECTION : On force une largeur minimale fixe pour que le tableau ne s'écrase pas sur mobile -->
+        <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 850px;">
+            <thead>
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #eaeaea;">
+                    <th style="padding: 12px 16px;">Nom complet</th>
+                    <th style="padding: 12px 16px;">Email</th>
+                    <th style="padding: 12px 16px;">Rôle</th>
+                    <th style="padding: 12px 16px;">Régie / Agence</th>
+                    <th style="padding: 12px 16px;">Statut</th>
+                    <th style="padding: 12px 16px; text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                    <!-- ... Tout le reste de votre tbody existant reste rigoureusement le même ... -->
+                    <tr style="border-bottom: 1px solid #eaeaea; {% if not u.is_active %}opacity: 0.6; background: #fafafa;{% endif %}">
+                        <td style="padding: 12px 16px; font-weight: 500;">{{ u.first_name }} {{ u.last_name }} <span style="color: #888; font-size: 12px;">({{ u.username }})</span></td>
+                        <td style="padding: 12px 16px;">{{ u.email }}</td>
+                        <td style="padding: 12px 16px;">
+                            <span class="badge" style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; {% if u.role == 'SUPER_ADMIN' %}background: #ffe6e6; color: #cc0000;{% elif u.role == 'AGENCY_ADMIN' %}background: #e6f0ff; color: #0044cc;{% else %}background: #e6ffe6; color: #006600;{% endif %}">
+                                {{ u.get_role_display }}
+                            </span>
+                        </td>
+                        <td style="padding: 12px 16px; color: #555;">{{ u.agency.name|default:"— (Global PubPanels)" }}</td>
+                        <td style="padding: 12px 16px;">
+                            {% if u.is_active %}
+                                <span style="color: #28a745; display: inline-flex; align-items: center; gap: 5px;">● Actif</span>
+                            {% else %}
+                                <span style="color: #dc3545; display: inline-flex; align-items: center; gap: 5px;">○ Inactif</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 16px; text-align: right; display: flex; justify-content: flex-end; gap: 8px; align-items: center; white-space: nowrap;">
+                            {% if u != request.user %}
+                                <form method="post" action="{% url 'user_reset_password_trigger' u.id %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <button type="submit" style="padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 4px; color: #4b5563; background: #f9fafb; font-size: 13px; cursor: pointer;">🔑 Réinit.</button>
+                                </form>
+                                <a href="{% url 'user_edit' u.id %}" class="btn-action" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; text-decoration: none; color: #333; font-size: 13px; background: white;">✏️ Modifier</a>
+                                <form method="post" action="{% url 'user_toggle_status' u.id %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    {% if u.is_active %}
+                                        <button type="submit" style="padding: 6px 12px; border: 1px solid #dc3545; border-radius: 4px; color: #dc3545; background: #fff5f5; font-size: 13px; cursor: pointer;">🛑 Désactiver</button>
+                                    {% else %}
+                                        <button type="submit" style="padding: 6px 12px; border: 1px solid #28a745; border-radius: 4px; color: #28a745; background: #f2fff5; font-size: 13px; cursor: pointer;">✅ Activer</button>
+                                    {% endif %}
+                                </form>
+                            {% else %}
+                                <span style="font-size: 12px; color: #888; font-style: italic; padding-right: 10px;">(Vous-même)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -8,30 +8,36 @@
 
     <div class="mobile-topbar-brand">PubPanels</div>
 
-    <div class="mobile-user-menu">
-        <button type="button" class="mobile-user-avatar-btn" id="mobile-user-avatar-btn" aria-label="Profil">
-            {% if user.is_authenticated and user.username %}
-                {{ user.username|slice:":1"|upper }}
-            {% else %}
-                U
-            {% endif %}
+    <div class="user-profile-container" style="position: relative; display: inline-block;">
+
+        <!-- Bouton déclencheur (Nom de l'utilisateur) -->
+        <button onclick="toggleUserDropdown(event)" class="user-dropdown-trigger" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #333; padding: 8px 12px; border-radius: 6px;">
+            <span>👤</span> {{ request.user.first_name }} {{ request.user.last_name }} <span style="font-size: 10px; color: #888;">▼</span>
         </button>
 
-        <div class="mobile-user-dropdown" id="mobile-user-dropdown" hidden>
-            <div class="mobile-user-dropdown-name">
-                {% if user.is_authenticated %}{{ user.username }}{% else %}Utilisateur{% endif %}
+        <!-- Le Menu Déroulant Unique (Desktop & Mobile) -->
+        <div id="userDropdownMenu" class="user-dropdown-menu" style="display: none; position: absolute; right: 0; top: 110%; background: white; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid #eaeaea; z-index: 1000; flex-direction: column; padding: 6px 0;">
+
+            <!-- Badge de rappel du rôle (Optionnel mais rassurant) -->
+            <div style="padding: 8px 16px; font-size: 11px; color: #888; text-transform: uppercase; font-weight: bold; border-bottom: 1px solid #f5f5f5; margin-bottom: 4px;">
+                {{ request.user.get_role_display }}
             </div>
-            <div class="mobile-user-dropdown-sub">
-                {% if user.is_authenticated and user.agency %}{{ user.agency.name }}{% else %}Session active{% endif %}
-            </div>
-            {% if user.is_authenticated %}
-                <form method="post" action="{% url 'logout' %}" class="logout-form">
-                    {% csrf_token %}
-                    <button type="submit" class="mobile-user-dropdown-logout">Déconnexion</button>
-                </form>
-            {% endif %}
+
+            <!-- 🆕 Le nouveau bouton Profil -->
+            <a href="{% url 'my_profile' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: #333; text-decoration: none; font-size: 14px; font-weight: 500;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
+                ⚙️ Mon profil
+            </a>
+
+            <!-- Bouton Déconnexion existant (Ajusté en POST pour la sécurité Django) -->
+            <form method="post" action="{% url 'logout' %}" style="margin: 0; width: 100%;">
+                {% csrf_token %}
+                <button type="submit" style="display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 16px; color: #dc3545; background: none; border: none; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='none'">
+                    🚪 Déconnexion
+                </button>
+            </form>
         </div>
     </div>
+
 </div>
 
 <div class="mobile-sidebar-overlay" id="mobile-sidebar-overlay"></div>
@@ -83,12 +89,17 @@
                 <a class="backoffice-nav-plus" href="{% url 'client_create' %}" title="Créer un client" aria-label="Créer un client">+</a>
             </div>
 
-            {% if user.role == "super_admin" or user.role == "agency_admin" %}
+            {% if request.user.role == "super_admin" or request.user.role == "agency_admin" %}
                 <span class="backoffice-nav-section">Régie</span>
                 <a class="backoffice-nav-link" href="{% url 'agency_profile' %}">
                     <span class="backoffice-nav-label">Ma régie</span>
                 </a>
-                {% if user.role == "super_admin" %}
+
+                 <a class="backoffice-nav-link {% if request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'user_create' %}active{% endif %}" href="{% url 'user_list' %}">
+                    <span class="backoffice-nav-label">Gestion équipe</span>
+                </a>
+
+                {% if request.user.role == "super_admin" %}
                     <a class="backoffice-nav-link" href="{% url 'agency_list' %}">
                         <span class="backoffice-nav-label">Toutes les régies</span>
                     </a>
@@ -111,43 +122,60 @@
             </div>
 
             <div class="backoffice-topbar-right">
-                <div class="backoffice-user-box">
-                    <div class="backoffice-user-avatar">
-                        {% if user.is_authenticated and user.username %}
-                            {{ user.username|slice:":1"|upper }}
-                        {% else %}
-                            U
-                        {% endif %}
-                    </div>
+    <!-- Conteneur global du Dropdown Ordinateur -->
+    <div class="backoffice-user-dropdown-wrapper" style="position: relative; display: inline-block;">
 
-                    <div class="backoffice-user-meta">
-                        <div class="backoffice-user-name">
-                            {% if user.is_authenticated %}
-                                {{ user.username }}
-                            {% else %}
-                                Utilisateur
-                            {% endif %}
-                        </div>
-
-                        <div class="backoffice-user-sub">
-                            {% if user.is_authenticated and user.agency %}
-                                {{ user.agency.name }}
-                            {% else %}
-                                Session active
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    {% if user.is_authenticated %}
-                        <div class="backoffice-user-actions">
-                            <form method="post" action="{% url 'logout' %}" class="logout-form">
-                                {% csrf_token %}
-                                <button type="submit" class="logout-button">Déconnexion</button>
-                            </form>
-                        </div>
+        <!-- Bouton déclencheur cliquable (Avatar + Meta) -->
+        <button onclick="toggleDesktopUserDropdown(event)" class="backoffice-user-box" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-radius: 8px; text-align: left;">
+            <div class="backoffice-user-avatar" style="margin: 0;">
+                {% if request.user.is_authenticated and request.user.username %}
+                    {{ request.user.username|slice:":1"|upper }}
+                {% else %}
+                    U
+                {% endif %}
+            </div>
+            <div class="backoffice-user-meta">
+                <div class="backoffice-user-name" style="font-weight: 600; color: #333; display: flex; align-items: center; gap: 6px;">
+                    {% if request.user.is_authenticated %}
+                        {{ request.user.first_name }} {{ request.user.last_name }}
+                    {% else %}
+                        Utilisateur
+                    {% endif %}
+                    <span style="font-size: 10px; color: #888;">▼</span>
+                </div>
+                <div class="backoffice-user-sub" style="font-size: 12px; color: #666;">
+                    {% if request.user.is_authenticated and request.user.agency %}
+                        {{ request.user.agency.name }}
+                    {% else %}
+                        Session active
                     {% endif %}
                 </div>
             </div>
+        </button>
+
+        <!-- Le Menu Déroulant Ordinateur -->
+        <div id="desktopUserDropdownMenu" class="user-dropdown-menu" style="display: none; position: absolute; right: 0; top: 110%; background: white; min-width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid #eaeaea; z-index: 1000; flex-direction: column; padding: 6px 0;">
+            <!-- Rappel du rôle -->
+            <div style="padding: 8px 16px; font-size: 11px; color: #888; text-transform: uppercase; font-weight: bold; border-bottom: 1px solid #f5f5f5; margin-bottom: 4px;">
+                {{ request.user.get_role_display }}
+            </div>
+
+            <!-- Lien Mon Profil -->
+            <a href="{% url 'my_profile' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: #333; text-decoration: none; font-size: 14px; font-weight: 500;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
+                ⚙️ Mon profil
+            </a>
+
+            <!-- Formulaire de déconnexion sécurisé -->
+            <form method="post" action="{% url 'logout' %}" style="margin: 0; width: 100%;">
+                {% csrf_token %}
+                <button type="submit" style="display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 16px; color: #dc3545; background: none; border: none; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='none'">
+                    🚪 Déconnexion
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
         </header>
 
         <main class="backoffice-content">
@@ -242,6 +270,43 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
+
+        // Menu Mobile (Vôtre existant)
+    function toggleUserDropdown(event) {
+        event.stopPropagation();
+        const menu = document.getElementById('userDropdownMenu');
+        if (menu.style.display === 'flex') {
+            menu.style.display = 'none';
+        } else {
+            menu.style.display = 'flex';
+        }
+    }
+
+    // Nouveau : Menu Ordinateur
+    function toggleDesktopUserDropdown(event) {
+        event.stopPropagation();
+        const menu = document.getElementById('desktopUserDropdownMenu');
+        if (menu.style.display === 'flex') {
+            menu.style.display = 'none';
+        } else {
+            menu.style.display = 'flex';
+        }
+    }
+
+    // Gestion globale de la fermeture automatique (Mobile + Ordinateur) au clic n'importe où
+    document.addEventListener('click', function(event) {
+        const mobileMenu = document.getElementById('userDropdownMenu');
+        const desktopMenu = document.getElementById('desktopUserDropdownMenu');
+
+        if (mobileMenu && mobileMenu.style.display === 'flex') {
+            mobileMenu.style.display = 'none';
+        }
+        if (desktopMenu && desktopMenu.style.display === 'flex') {
+            desktopMenu.style.display = 'none';
+        }
+    });
+
 </script>
+
 
 {% endblock %}
